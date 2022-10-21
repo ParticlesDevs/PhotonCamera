@@ -1,6 +1,3 @@
-[submodule "app/src/main/cpp/deps/SDL"]
-	path = app/src/main/cpp/deps/SDL
-	url = https://github.com/sfalexrog/SDL
 [submodule "app/src/main/cpp/deps/glm"]
 	path = app/src/main/cpp/deps/glm
 	url = https://github.com/g-truc/glm

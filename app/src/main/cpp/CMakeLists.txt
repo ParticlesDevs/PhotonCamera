@@ -1,70 +1,40 @@
-# Cmake file for a sample cross-platform project with dear imgui.
-# The aim here is to have most of the stuff (including cmake files)
-# be the same throughout platforms.
+cmake_minimum_required(VERSION 3.6)
 
-cmake_minimum_required(VERSION 3.1)
-
-project(imgui_demo)
+project(PhotonCamera)
 
 set(CMAKE_CXX_STANDARD 11)
-set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
-find_package(SDL2 REQUIRED)
+add_library(${CMAKE_PROJECT_NAME} SHARED
+        ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/deps/imgui/imgui.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/deps/imgui/imgui_demo.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/deps/imgui/imgui_draw.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/deps/imgui/imgui_tables.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/deps/imgui/imgui_widgets.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/impl/imgui_impl_android.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/impl/imgui_impl_opengl3.cpp
+        ${ANDROID_NDK}/sources/android/native_app_glue/android_native_app_glue.c
+        )
 
-# This is an adaptation of the ImGui demo, with some geometry (a teapot)
-# rendered in order to check the ImGui implementation. Teapot is taken
-# from Google NDK samples.
+set(CMAKE_SHARED_LINKER_FLAGS
+        "${CMAKE_SHARED_LINKER_FLAGS} -u ANativeActivity_onCreate"
+        )
 
-set(IMGUI_PATH deps/imgui)
-set(IMGUI_IMPL_PATH src/imgui_impl)
+target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE
+        IMGUI_IMPL_OPENGL_ES3
+        )
 
-# Since we're drawing something that's not just a triangle, we're gonna
-# want a library that deals with vectors and matrices. glm is the obvious
-# choice.
+target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/deps/imgui
+        ${CMAKE_CURRENT_SOURCE_DIR}/impl
+        ${ANDROID_NDK}/sources/android/native_app_glue
+        )
 
-add_subdirectory(deps/glm)
-
-# Use GLES2/GLES3 implementations for Android, GL3 for everything else
-
-if (ANDROID)
-    set(GL_PROFILES "GL_PROFILE_GLES2" "GL_PROFILE_GLES3")
-else()
-    set(GL_PROFILES "GL_PROFILE_GL3")
-endif()
-
-file(GLOB IMGUI_FILES
-    ${IMGUI_PATH}/*.cpp
-    ${IMGUI_IMPL_PATH}/*.cpp
-)
-
-file(GLOB DEMO_FILES
-    src/*.cpp
-)
-
-if (NOT ANDROID)
-    set(GLLOAD_PATH src/glload)
-    file(GLOB GLLOAD_FILES
-            ${GLLOAD_PATH}/*.c)
-endif()
-
-
-set(DEMO_SOURCES ${IMGUI_FILES} ${DEMO_FILES} ${GLLOAD_FILES})
-
-# Build as a library for Android, as an executable otherwise
-
-if (ANDROID)
-    add_library(demo SHARED
-        ${DEMO_SOURCES}
-    )
-else()
-    add_executable(demo
-        ${DEMO_SOURCES}
-    )
-endif()
-
-target_link_libraries(demo ${SDL2_LIBRARY} glm GLESv2)
-target_include_directories(demo PRIVATE ${SDL2_INCLUDE_DIR})
-target_include_directories(demo PRIVATE ${IMGUI_PATH})
-target_include_directories(demo PRIVATE ${IMGUI_IMPL_PATH})
-target_include_directories(demo PRIVATE ${GLLOAD_PATH})
-target_compile_definitions(demo PRIVATE ${GL_PROFILES})
+target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE
+        android
+        EGL
+        GLESv3
+        log
+        )
