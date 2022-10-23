@@ -4,17 +4,18 @@
 
 #include "UiManager.h"
 #include "Preview.h"
+#include "Settings.h"
+
 void UiManager::tick() {
     //ImGui::PushStyleVar(ImGuiStyleVar_FramePadding,ImVec2{});
     ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize,0);
     switch (UiManager::currentLayout) {
-        case Main: {
-            if(preview) {
-                Preview(this);
-            }
+        case MAIN: {
+            Preview(this);
             break;
         }
-        case Settings: {
+        case SETTINGS: {
+            Settings(this);
             break;
         }
     }

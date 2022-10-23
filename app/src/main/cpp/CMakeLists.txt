@@ -16,6 +16,7 @@ add_library(${CMAKE_PROJECT_NAME} SHARED
         ${SRC_DIR}/impl/imgui_impl_android.cpp
         ${SRC_DIR}/impl/imgui_impl_opengl3.cpp
         ${SRC_DIR}/UI/Preview.cpp
+        ${SRC_DIR}/UI/Settings.cpp
         ${SRC_DIR}/UI/UiManager.cpp
         ${ANDROID_NDK}/sources/android/native_app_glue/android_native_app_glue.c
         )

@@ -6,14 +6,13 @@
 #define PHOTONCAMERA_UIMANAGER_H
 
 enum Layout: int {
-    Main,
-    Settings
+    MAIN,
+    SETTINGS
 };
 class UiManager {
-    Layout currentLayout = Main;
 
 public:
-    bool preview = true;
+    Layout currentLayout = MAIN;
     bool takeShot = false;
     float sliderTest = 0.f;
     void tick();

@@ -19,6 +19,7 @@ add_executable(${CMAKE_PROJECT_NAME}
         #${SRC_DIR}/impl/imgui_impl_android.cpp
         ${SRC_DIR}/impl/imgui_impl_opengl3.cpp
         ${SRC_DIR}/UI/Preview.cpp
+        ${SRC_DIR}/UI/Settings.cpp
         ${SRC_DIR}/UI/UiManager.cpp
         imgui_impl_glfw.cpp
         main.cpp main.h)

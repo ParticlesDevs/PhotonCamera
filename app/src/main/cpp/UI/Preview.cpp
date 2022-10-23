@@ -13,6 +13,9 @@ void Preview(UiManager* manager){
         ImGui::End();
         return;
     }
+    if (ImGui::Button("Settings")) {
+        manager->currentLayout = SETTINGS;
+    }
     ImGui::SetCursorPos(disp*0.2f);
     auto previewSize = disp*0.4f;//Example previewSize
     if(ImGui::BeginChild("previewTex",previewSize, true)){
@@ -23,7 +26,7 @@ void Preview(UiManager* manager){
     ImGui::SetCursorPos(ImVec2{disp.x*0.2f-bsize.x/2,disp.y*0.9f - bsize.y/2});
     ImGui::Button("Cam",bsize);
     ImGui::SetCursorPos(ImVec2{disp.x*0.5f-bsize.x/2,disp.y*0.9f - bsize.y/2});
-    ImGui::Button("Shot",bsize);
+    manager->takeShot = ImGui::Button("Shot",bsize);
     ImGui::SetCursorPos(ImVec2{disp.x*0.8f-bsize.x/2,disp.y*0.9f - bsize.y/2});
     ImGui::Button("Gallery",bsize);
 
