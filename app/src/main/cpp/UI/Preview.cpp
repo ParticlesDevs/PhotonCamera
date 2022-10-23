@@ -20,11 +20,11 @@ void Preview(UiManager* manager){
         ImGui::EndChild();
     }
     auto bsize = ImVec2{0.5f*io.DPI,0.5f*io.DPI};
-    ImGui::SetCursorPos(ImVec2{disp.x*0.2f-bsize.x/2,disp.y*0.88f});
+    ImGui::SetCursorPos(ImVec2{disp.x*0.2f-bsize.x/2,disp.y*0.9f - bsize.y/2});
     ImGui::Button("Cam",bsize);
-    ImGui::SetCursorPos(ImVec2{disp.x*0.5f-bsize.x/2,disp.y*0.88f});
+    ImGui::SetCursorPos(ImVec2{disp.x*0.5f-bsize.x/2,disp.y*0.9f - bsize.y/2});
     ImGui::Button("Shot",bsize);
-    ImGui::SetCursorPos(ImVec2{disp.x*0.8f-bsize.x/2,disp.y*0.88f});
+    ImGui::SetCursorPos(ImVec2{disp.x*0.8f-bsize.x/2,disp.y*0.9f - bsize.y/2});
     ImGui::Button("Gallery",bsize);
 
     ImGui::End();

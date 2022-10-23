@@ -198,8 +198,15 @@ int32_t ImGui_ImplAndroid_HandleInputEvent(AInputEvent* input_event)
         event_action &= AMOTION_EVENT_ACTION_MASK;
         switch (event_action)
         {
+        case AMOTION_EVENT_ACTION_UP: {
+            io.AddMousePosEvent(AMotionEvent_getX(input_event, event_pointer_index), AMotionEvent_getY(input_event, event_pointer_index));
+            io.AddMouseButtonEvent(0, event_action == AMOTION_EVENT_ACTION_DOWN);
+
+            io.AddMousePosEvent(0, 0);//Cursor hovering bugfix
+            io.AddMouseButtonEvent(0, event_action == AMOTION_EVENT_ACTION_DOWN);
+            break;
+        }
         case AMOTION_EVENT_ACTION_DOWN:
-        case AMOTION_EVENT_ACTION_UP:
             // Physical mouse buttons (and probably other physical devices) also invoke the actions AMOTION_EVENT_ACTION_DOWN/_UP,
             // but we have to process them separately to identify the actual button pressed. This is done below via
             // AMOTION_EVENT_ACTION_BUTTON_PRESS/_RELEASE. Here, we only process "FINGER" input (and "UNKNOWN", as a fallback).
@@ -210,6 +217,7 @@ int32_t ImGui_ImplAndroid_HandleInputEvent(AInputEvent* input_event)
                 io.AddMouseButtonEvent(0, event_action == AMOTION_EVENT_ACTION_DOWN);
             }
             break;
+
         case AMOTION_EVENT_ACTION_BUTTON_PRESS:
         case AMOTION_EVENT_ACTION_BUTTON_RELEASE:
             {
