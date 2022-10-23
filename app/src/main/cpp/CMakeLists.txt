@@ -5,7 +5,6 @@ project(PhotonCamera)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
-
 add_library(${CMAKE_PROJECT_NAME} SHARED
         ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/deps/imgui/imgui.cpp
@@ -15,6 +14,8 @@ add_library(${CMAKE_PROJECT_NAME} SHARED
         ${CMAKE_CURRENT_SOURCE_DIR}/deps/imgui/imgui_widgets.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/impl/imgui_impl_android.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/impl/imgui_impl_opengl3.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/UI/Preview.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/UI/UiManager.cpp
         ${ANDROID_NDK}/sources/android/native_app_glue/android_native_app_glue.c
         )
 
@@ -29,6 +30,7 @@ target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/deps/imgui
         ${CMAKE_CURRENT_SOURCE_DIR}/impl
+        ${CMAKE_CURRENT_SOURCE_DIR}/inc
         ${ANDROID_NDK}/sources/android/native_app_glue
         )
 

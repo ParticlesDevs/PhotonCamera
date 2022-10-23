@@ -1,28 +1,8 @@
 // dear imgui: standalone example application for Android + OpenGL ES 3
 // If you are new to dear imgui, see examples/README.txt and documentation at the top of imgui.cpp.
-
-#include "imgui.h"
-#include "impl/imgui_impl_android.h"
-#include "impl/imgui_impl_opengl3.h"
-#include <android/log.h>
-#include <android_native_app_glue.h>
-#include <android/asset_manager.h>
-#include <EGL/egl.h>
-#include <GLES3/gl3.h>
-#include <vector>
+#include "main.h"
 using namespace std;
-// Data
-static EGLDisplay           g_EglDisplay = EGL_NO_DISPLAY;
-static EGLSurface           g_EglSurface = EGL_NO_SURFACE;
-static EGLContext           g_EglContext = EGL_NO_CONTEXT;
-static struct android_app*  g_App = NULL;
-static bool                 g_Initialized = false;
-static char                 g_LogTag[] = "ImGuiExample";
-static vector<ImFont*> fonts;
-// Forward declarations of helper functions
-static int ShowSoftKeyboardInput();
-static int PollUnicodeChars();
-static int GetAssetData(const char* filename, void** out_data);
+
 
 
 int32_t getDensityDpi(android_app* app) {
@@ -106,6 +86,7 @@ void init(struct android_app* app)
     ImFontConfig font_cfg;
     font_cfg.SizePixels = DPI/10;
     io.Fonts->AddFontDefault(&font_cfg);
+    io.DPI = DPI;
     void* font_data;
     int font_data_size;
     ImFont* font;
@@ -129,7 +110,7 @@ void init(struct android_app* app)
 
     // Arbitrary scale-up
     // FIXME: Put some effort into DPI awareness
-    ImGui::GetStyle().ScaleAllSizes(DPI/100);
+    ImGui::GetStyle().ScaleAllSizes(io.DPI/100);
 
     g_Initialized = true;
 }
@@ -163,7 +144,7 @@ void tick()
     // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
     if (show_demo_window)
         ImGui::ShowDemoWindow(&show_demo_window);
-
+    uiManager.tick();
     // 2. Show a simple window that we create ourselves. We use a Begin/End pair to create a named window.
     {
         static float f = 0.0f;
