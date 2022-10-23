@@ -9,7 +9,8 @@
 #include <android/asset_manager.h>
 #include <EGL/egl.h>
 #include <GLES3/gl3.h>
-
+#include <vector>
+using namespace std;
 // Data
 static EGLDisplay           g_EglDisplay = EGL_NO_DISPLAY;
 static EGLSurface           g_EglSurface = EGL_NO_SURFACE;
@@ -17,11 +18,20 @@ static EGLContext           g_EglContext = EGL_NO_CONTEXT;
 static struct android_app*  g_App = NULL;
 static bool                 g_Initialized = false;
 static char                 g_LogTag[] = "ImGuiExample";
-
+static vector<ImFont*> fonts;
 // Forward declarations of helper functions
 static int ShowSoftKeyboardInput();
 static int PollUnicodeChars();
 static int GetAssetData(const char* filename, void** out_data);
+
+
+int32_t getDensityDpi(android_app* app) {
+    AConfiguration* config = AConfiguration_new();
+    AConfiguration_fromAssetManager(config, app->activity->assetManager);
+    int32_t density = AConfiguration_getDensity(config);
+    AConfiguration_delete(config);
+    return density;
+}
 
 void init(struct android_app* app)
 {
@@ -69,7 +79,6 @@ void init(struct android_app* app)
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO();
-
     // Disable loading/saving of .ini file from disk.
     // FIXME: Consider using LoadIniSettingsFromMemory() / SaveIniSettingsToMemory() to save in appropriate location for Android.
     io.IniFilename = NULL;
@@ -92,16 +101,19 @@ void init(struct android_app* app)
 
     // We load the default font with increased size to improve readability on many devices with "high" DPI.
     // FIXME: Put some effort into DPI awareness.
+    auto DPI = getDensityDpi(app);
     // Important: when calling AddFontFromMemoryTTF(), ownership of font_data is transfered by Dear ImGui by default (deleted is handled by Dear ImGui), unless we set FontDataOwnedByAtlas=false in ImFontConfig
     ImFontConfig font_cfg;
-    font_cfg.SizePixels = 22.0f;
+    font_cfg.SizePixels = DPI/10;
     io.Fonts->AddFontDefault(&font_cfg);
-    //void* font_data;
-    //int font_data_size;
-    //ImFont* font;
-    //font_data_size = GetAssetData("segoeui.ttf", &font_data);
-    //font = io.Fonts->AddFontFromMemoryTTF(font_data, font_data_size, 16.0f);
-    //IM_ASSERT(font != NULL);
+    void* font_data;
+    int font_data_size;
+    ImFont* font;
+    font_data_size = GetAssetData("NotoSansMono-Regular-Nerd-Font-Complete.ttf", &font_data);
+    font = io.Fonts->AddFontFromMemoryTTF(font_data, font_data_size, DPI/10);
+    IM_ASSERT(font != NULL);
+    fonts.push_back(font);
+    io.FontDefault = font;
     //font_data_size = GetAssetData("DroidSans.ttf", &font_data);
     //font = io.Fonts->AddFontFromMemoryTTF(font_data, font_data_size, 16.0f);
     //IM_ASSERT(font != NULL);
@@ -117,7 +129,7 @@ void init(struct android_app* app)
 
     // Arbitrary scale-up
     // FIXME: Put some effort into DPI awareness
-    ImGui::GetStyle().ScaleAllSizes(3.0f);
+    ImGui::GetStyle().ScaleAllSizes(DPI/100);
 
     g_Initialized = true;
 }
@@ -251,8 +263,10 @@ static int32_t handleInputEvent(struct android_app* app, AInputEvent* inputEvent
 
 void android_main(struct android_app* app)
 {
+
     app->onAppCmd = handleAppCmd;
     app->onInputEvent = handleInputEvent;
+
 
     while (true)
     {

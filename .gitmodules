@@ -1,6 +1,0 @@
-[submodule "app/src/main/cpp/deps/glm"]
-	path = app/src/main/cpp/deps/glm
-	url = https://github.com/g-truc/glm
-[submodule "app/src/main/cpp/deps/imgui"]
-	path = app/src/main/cpp/deps/imgui
-	url = https://github.com/ocornut/imgui
