@@ -86,12 +86,12 @@ void init(struct android_app* app)
     ImFontConfig font_cfg;
     font_cfg.SizePixels = DPI/10;
     io.Fonts->AddFontDefault(&font_cfg);
-    io.DPI = DPI;
+    uiManager.DPI = DPI;
     void* font_data;
     int font_data_size;
     ImFont* font;
     font_data_size = GetAssetData("NotoSansMono-Regular-Nerd-Font-Complete.ttf", &font_data);
-    font = io.Fonts->AddFontFromMemoryTTF(font_data, font_data_size, DPI/10);
+    font = io.Fonts->AddFontFromMemoryTTF(font_data, font_data_size, uiManager.DPI/10);
     IM_ASSERT(font != NULL);
     fonts.push_back(font);
     io.FontDefault = font;
@@ -110,7 +110,7 @@ void init(struct android_app* app)
 
     // Arbitrary scale-up
     // FIXME: Put some effort into DPI awareness
-    ImGui::GetStyle().ScaleAllSizes(io.DPI/100);
+    ImGui::GetStyle().ScaleAllSizes(uiManager.DPI/100);
 
     g_Initialized = true;
 }

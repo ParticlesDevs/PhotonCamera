@@ -22,7 +22,7 @@ void Preview(UiManager* manager){
 
         ImGui::EndChild();
     }
-    auto bsize = ImVec2{0.5f*io.DPI,0.5f*io.DPI};
+    auto bsize = ImVec2{0.5f*manager->DPI,0.5f*manager->DPI};
     ImGui::SetCursorPos(ImVec2{disp.x*0.2f-bsize.x/2,disp.y*0.9f - bsize.y/2});
     ImGui::Button("Cam",bsize);
     ImGui::SetCursorPos(ImVec2{disp.x*0.5f-bsize.x/2,disp.y*0.9f - bsize.y/2});
