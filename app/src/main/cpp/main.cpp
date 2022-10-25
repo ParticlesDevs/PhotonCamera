@@ -59,9 +59,10 @@ void init(struct android_app* app)
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO();
+
     // Disable loading/saving of .ini file from disk.
     // FIXME: Consider using LoadIniSettingsFromMemory() / SaveIniSettingsToMemory() to save in appropriate location for Android.
-    io.IniFilename = NULL;
+    io.IniFilename = "/data/data/com.particlesdevs.PhotonCamera/window.ini";
 
     // Setup Dear ImGui style
     ImGui::StyleColorsDark();
@@ -70,6 +71,31 @@ void init(struct android_app* app)
     // Setup Platform/Renderer backends
     ImGui_ImplAndroid_Init(g_App->window);
     ImGui_ImplOpenGL3_Init("#version 300 es");
+
+    JavaVM* java_vm = g_App->activity->vm;
+    JNIEnv* java_env = NULL;
+
+    jint jni_return = java_vm->GetEnv((void**)&java_env, JNI_VERSION_1_6);
+    if (jni_return == JNI_ERR) {
+        return;
+    }
+
+    jni_return = java_vm->AttachCurrentThread(&java_env, NULL);
+    if (jni_return != JNI_OK)
+        return;
+
+    jclass native_activity_clazz = java_env->GetObjectClass(g_App->activity->clazz);
+    if (native_activity_clazz == NULL)
+        return;
+
+    jmethodID method_id = java_env->GetMethodID(native_activity_clazz, "getUnicodeByteBuffer", "()Ljava/nio/ByteBuffer;");
+    if (method_id == NULL)
+        return;
+    jobject buf = java_env->CallObjectMethod(g_App->activity->clazz, method_id);
+    unicodeBuffer = (int*)java_env->GetDirectBufferAddress(buf);
+    jni_return = java_vm->DetachCurrentThread();
+    if (jni_return != JNI_OK)
+        return;
 
     // Load Fonts
     // - If no fonts are loaded, dear imgui will use the default font. You can also load multiple fonts and use ImGui::PushFont()/PopFont() to select them.
@@ -80,7 +106,6 @@ void init(struct android_app* app)
     // - Android: The TTF files have to be placed into the assets/ directory (android/app/src/main/assets), we use our GetAssetData() helper to retrieve them.
 
     // We load the default font with increased size to improve readability on many devices with "high" DPI.
-    // FIXME: Put some effort into DPI awareness.
     auto DPI = getDensityDpi(app);
     // Important: when calling AddFontFromMemoryTTF(), ownership of font_data is transfered by Dear ImGui by default (deleted is handled by Dear ImGui), unless we set FontDataOwnedByAtlas=false in ImFontConfig
     ImFontConfig font_cfg;
@@ -109,8 +134,9 @@ void init(struct android_app* app)
     //IM_ASSERT(font != NULL);
 
     // Arbitrary scale-up
-    // FIXME: Put some effort into DPI awareness
     ImGui::GetStyle().ScaleAllSizes(uiManager.DPI/100);
+
+
 
     g_Initialized = true;
 }
@@ -126,8 +152,8 @@ void tick()
     static bool show_another_window = false;
     static ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
-    // Poll Unicode characters via JNI
-    // FIXME: do not call this every frame because of JNI overhead
+    // Poll Unicode characters via native way
+    // Fixed removed JNI overhead
     PollUnicodeChars();
 
     // Open on-screen (soft) input if requested by Dear ImGui
@@ -248,7 +274,6 @@ void android_main(struct android_app* app)
     app->onAppCmd = handleAppCmd;
     app->onInputEvent = handleInputEvent;
 
-
     while (true)
     {
         int out_events;
@@ -315,6 +340,7 @@ static int ShowSoftKeyboardInput()
 // the resulting Unicode characters here via JNI and send them to Dear ImGui.
 static int PollUnicodeChars()
 {
+    /*
     JavaVM* java_vm = g_App->activity->vm;
     JNIEnv* java_env = NULL;
 
@@ -344,6 +370,15 @@ static int PollUnicodeChars()
     if (jni_return != JNI_OK)
         return -5;
 
+    return 0;
+     */
+    ImGuiIO& io = ImGui::GetIO();
+    if(unicodeBuffer[1] != 0){
+        for(int i =0; i<unicodeBuffer[0];i++){
+            io.AddInputCharacter(unicodeBuffer[i+1]);
+        }
+        unicodeBuffer[0] = 0;
+    }
     return 0;
 }
 

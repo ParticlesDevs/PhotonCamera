@@ -24,6 +24,7 @@ static struct android_app*  g_App = NULL;
 static bool                 g_Initialized = false;
 static char                 g_LogTag[] = "ImGuiExample";
 static vector<ImFont*> fonts;
+static int* unicodeBuffer;
 // Forward declarations of helper functions
 static int ShowSoftKeyboardInput();
 static int PollUnicodeChars();
