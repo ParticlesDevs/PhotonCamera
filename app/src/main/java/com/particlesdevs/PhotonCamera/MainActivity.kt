@@ -3,19 +3,54 @@ package com.particlesdevs.PhotonCamera
 import android.app.NativeActivity
 import android.os.Bundle
 import android.content.Context
+import android.content.pm.PackageManager
+import android.graphics.SurfaceTexture
+import android.os.Build
 import android.view.inputmethod.InputMethodManager
 import android.view.KeyEvent
+import android.view.Surface
+import android.widget.Toast
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.util.concurrent.LinkedBlockingQueue
 
 class MainActivity : NativeActivity() {
     lateinit var nativeBuffer: ByteBuffer
+    lateinit var s: SurfaceTexture
     public override fun onCreate(savedInstanceState: Bundle?) {
         nativeBuffer = ByteBuffer.allocateDirect(32*4);
         nativeBuffer.position(0)
         nativeBuffer.order(ByteOrder.nativeOrder())
         super.onCreate(savedInstanceState)
+    }
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == 1
+            && grantResults?.get(0) != PackageManager.PERMISSION_GRANTED) {
+            Toast.makeText(this, "This app requires camera permission", Toast.LENGTH_SHORT).show()
+            finish()
+        }
+    }
+    override fun onResume() {
+        super.onResume()
+
+        // Ask for camera permission if necessary
+        val camPermission = android.Manifest.permission.CAMERA
+        if (Build.VERSION.SDK_INT >= 23 &&
+            checkSelfPermission(camPermission) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(arrayOf(camPermission), 1)
+        } else {
+
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        s.release()
     }
 
     fun showSoftInput() {
@@ -50,6 +85,11 @@ class MainActivity : NativeActivity() {
     }
     fun getUnicodeByteBuffer(): ByteBuffer {
         return nativeBuffer
+    }
+    fun getSurfaceTexture(id: Int): Surface {
+        s = SurfaceTexture(id)
+        s.setDefaultBufferSize(1920,1080)
+        return Surface(s)
     }
 
     //fun pollUnicodeChar(): Int {

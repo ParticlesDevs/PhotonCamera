@@ -12,7 +12,6 @@ int32_t getDensityDpi(android_app* app) {
     AConfiguration_delete(config);
     return density;
 }
-
 void init(struct android_app* app)
 {
     if (g_Initialized)
@@ -20,7 +19,7 @@ void init(struct android_app* app)
 
     g_App = app;
     ANativeWindow_acquire(g_App->window);
-
+    EGLint egl_format;
     // Initialize EGL
     // This is mostly boilerplate code for EGL...
     {
@@ -41,7 +40,7 @@ void init(struct android_app* app)
         // Get the first matching config
         EGLConfig egl_config;
         eglChooseConfig(g_EglDisplay, egl_attributes, &egl_config, 1, &num_configs);
-        EGLint egl_format;
+
         eglGetConfigAttrib(g_EglDisplay, egl_config, EGL_NATIVE_VISUAL_ID, &egl_format);
         ANativeWindow_setBuffersGeometry(g_App->window, 0, 0, egl_format);
 
@@ -80,6 +79,7 @@ void init(struct android_app* app)
         return;
     }
 
+
     jni_return = java_vm->AttachCurrentThread(&java_env, NULL);
     if (jni_return != JNI_OK)
         return;
@@ -93,6 +93,21 @@ void init(struct android_app* app)
         return;
     jobject buf = java_env->CallObjectMethod(g_App->activity->clazz, method_id);
     unicodeBuffer = (int*)java_env->GetDirectBufferAddress(buf);
+
+    glGenTextures(1,&camera.texID);
+    //glBindTexture(GL_TEXTURE_2D, camera.texID);
+    //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1920, 1080, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+    uiManager.previewTexture = camera.texID;
+    method_id = java_env->GetMethodID(native_activity_clazz, "getSurfaceTexture", "(I)Landroid/view/Surface;");
+    if (method_id == NULL)
+        return;
+    LOGD("Created Surface");
+    auto surface = java_env->CallObjectMethod(g_App->activity->clazz,method_id,camera.texID);
+    auto window = ANativeWindow_fromSurface(java_env, surface);
+    ANativeWindow_acquire(window);
+    ANativeWindow_setBuffersGeometry(window,1920,1080,egl_format);
+    LOGD("Width: %d",ANativeWindow_getWidth(window));
+    camera.theNativeWindow = window;
     jni_return = java_vm->DetachCurrentThread();
     if (jni_return != JNI_OK)
         return;
@@ -136,8 +151,7 @@ void init(struct android_app* app)
     // Arbitrary scale-up
     ImGui::GetStyle().ScaleAllSizes(uiManager.DPI/100);
 
-
-
+    camera.StartPreview();
     g_Initialized = true;
 }
 

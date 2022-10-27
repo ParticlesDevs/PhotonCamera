@@ -8,6 +8,7 @@
 #include "imgui_impl_android.h"
 #include "imgui_impl_opengl3.h"
 #include "UiManager.h"
+#include "Camera.h"
 #include <android/log.h>
 #include <android_native_app_glue.h>
 #include <android/asset_manager.h>
@@ -15,7 +16,6 @@
 #include <GLES3/gl3.h>
 #include <vector>
 using namespace std;
-
 // Data
 static EGLDisplay           g_EglDisplay = EGL_NO_DISPLAY;
 static EGLSurface           g_EglSurface = EGL_NO_SURFACE;
@@ -30,5 +30,6 @@ static int ShowSoftKeyboardInput();
 static int PollUnicodeChars();
 static int GetAssetData(const char* filename, void** out_data);
 static UiManager uiManager;
+static Camera camera;
 
 #endif //PHOTONCAMERA_MAIN_H

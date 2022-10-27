@@ -8,6 +8,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 add_library(${CMAKE_PROJECT_NAME} SHARED
         ${SRC_DIR}/main.cpp
+        ${SRC_DIR}/Camera.cpp
         ${SRC_DIR}/deps/imgui/imgui.cpp
         ${SRC_DIR}/deps/imgui/imgui_demo.cpp
         ${SRC_DIR}/deps/imgui/imgui_draw.cpp
@@ -41,5 +42,6 @@ target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE
         android
         EGL
         GLESv3
+        camera2ndk
         log
         )
