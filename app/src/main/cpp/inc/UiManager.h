@@ -16,7 +16,7 @@ class UiManager {
 public:
     UiHandler handler;
     GLuint previewTexture;
-    ImVec2 previewSize = ImVec2{100,100};
+    float previewAspect = 4.f/3.f;
     float DPI;                                  // <unset>          // Dots per inch (DPI, or dpi) is a measure of spatial printing, video or image scanner dot density, in particular the number of individual dots that can be placed in a line within the span of 1 inch (2.54 cm)
     Layout currentLayout = MAIN;
     bool takeShot = false;

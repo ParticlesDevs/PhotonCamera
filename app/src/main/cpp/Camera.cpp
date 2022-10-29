@@ -31,7 +31,6 @@ static void captureCompleted(void* context, ACameraCaptureSession* session,
 
 void Camera::OpenCamera(ACameraDevice_request_template templateId) {
     ACameraIdList *cameraIdList = NULL;
-    ACameraMetadata *cameraMetadata = NULL;
 
     const char *selectedCameraId = NULL;
     camera_status_t camera_status = ACAMERA_OK;
@@ -54,7 +53,8 @@ void Camera::OpenCamera(ACameraDevice_request_template templateId) {
          cameraIdList->numCameras);
 
     camera_status = ACameraManager_getCameraCharacteristics(cameraManager, selectedCameraId,
-                                                            &cameraMetadata);
+                                                            &cameraCharacteristics);
+    ACameraMetadata_getAllTags(cameraCharacteristics, &tagsEntries,&tags);
     if (camera_status != ACAMERA_OK) {
         LOGE("Failed to get camera meta data of ID:%s\n", selectedCameraId);
     }
@@ -82,7 +82,7 @@ void Camera::OpenCamera(ACameraDevice_request_template templateId) {
     captureSessionStateCallbacks.onActive = capture_session_on_active;
     captureSessionStateCallbacks.onClosed = capture_session_on_closed;
 
-    ACameraMetadata_free(cameraMetadata);
+    //ACameraMetadata_free(cameraCharacteristics);
     ACameraManager_deleteCameraIdList(cameraIdList);
     ACameraManager_delete(cameraManager);
 }
@@ -126,7 +126,6 @@ void Camera::CloseCamera()
 
 void Camera::StartPreview() {
     camera_status_t camera_status = ACAMERA_OK;
-    OpenCamera(TEMPLATE_PREVIEW);
 
     //LOGI("Surface is prepared in %p.\n", surface);
 
@@ -134,6 +133,9 @@ void Camera::StartPreview() {
     if (camera_status != ACAMERA_OK) {
         LOGE("Failed to close CameraDevice.\n");
     }
+    uint8_t mode = ACAMERA_CONTROL_VIDEO_STABILIZATION_MODE_ON;
+    ACaptureRequest_setEntry_u8(captureRequest, ACAMERA_CONTROL_VIDEO_STABILIZATION_MODE, 1,
+                                &mode);
     ACaptureRequest_addTarget(captureRequest, cameraOutputTarget);
 
     ACaptureSessionOutput_create(theNativeWindow, &sessionOutput);
@@ -143,10 +145,64 @@ void Camera::StartPreview() {
 
     ACameraDevice_createCaptureSession(cameraDevice, captureSessionOutputContainer,
                                        &captureSessionStateCallbacks, &captureSession);
+    //ACameraDevice_createCaptureSessionWithSessionParameters(cameraDevice,captureSessionOutputContainer,captureRequest,&captureSessionStateCallbacks,&captureSession);
+
     captureSessionCaptureCallbacks.onCaptureCompleted = captureCompleted;
 
     ACameraCaptureSession_setRepeatingRequest(captureSession, &captureSessionCaptureCallbacks, 1, &captureRequest, NULL);
 
 }
 
+std::pair<int, int> Camera::MainSize(AIMAGE_FORMATS format, float aspect) {
+    ACameraMetadata_const_entry entry;
+    auto ret = ACameraMetadata_getConstEntry(cameraCharacteristics,ACAMERA_SCALER_AVAILABLE_STREAM_CONFIGURATIONS,&entry);
+    if(ret != ACAMERA_OK) {
+        LOGE("Error: Missing from characteristics!");
+    }
+
+    int height = 0;
+    int widght = 0;
+    LOGD("Size, Type: %d %d",entry.count,entry.type);
+    bool found = false;
+    for(int i=0; i<int(entry.count);i+=4){
+        if(entry.data.i32[i] == format){
+            LOGD("Format, Width, Height: %d %d %d",entry.data.i32[i],entry.data.i32[i+1],entry.data.i32[i+2]);
+            auto nw = entry.data.i32[i+1];
+            auto nh = entry.data.i32[i+2];
+            if(aspect == 0.f) {
+                if (height * widght < nw * nh && !(found && (nw * nh > 5000 * 5000))) {
+                    height = nh;
+                    widght = nw;
+                    found = true;
+                }
+            } else {
+                if (abs(float(nw)/float(nh)-aspect) < 0.05f && height * widght < nw * nh && !(found && (nw * nh > 5000 * 5000))) {
+                    height = nh;
+                    widght = nw;
+                    found = true;
+                }
+            }
+        }
+    }
+    return {widght,height};
+}
+std::pair<int, int> Camera::PreviewSize(std::pair<int, int> mainSize) {
+    ACameraMetadata_const_entry entry;
+    ACameraMetadata_getConstEntry(cameraCharacteristics,ACAMERA_SCALER_AVAILABLE_STREAM_CONFIGURATIONS,&entry);
+    float k = float(mainSize.first)/float(mainSize.second);
+    int height = 0;
+    int widght = 0;
+    for(int i =0; i<entry.count;i+=4){
+        if(entry.data.i32[i] == AIMAGE_FORMAT_YUV_420_888){
+            LOGD("Format, Width, Height: %d %d %d",entry.data.i32[i],entry.data.i32[i+1],entry.data.i32[i+2]);
+            auto nw = entry.data.i32[i+1];
+            auto nh = entry.data.i32[i+2];
+            if(nw*nh > height*widght && nw*nh < 2000*2000 && abs(float(nw)/float(nh)-k) < 0.05f){
+                height = nh;
+                widght = nw;
+            }
+        }
+    }
+    return {widght,height};
+}
 

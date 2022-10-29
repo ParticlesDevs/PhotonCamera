@@ -47,11 +47,9 @@ class MainActivity : NativeActivity() {
         super.onResume()
         // Ask for camera permission if necessary
         val camPermission = android.Manifest.permission.CAMERA
-        if (Build.VERSION.SDK_INT >= 23 &&
+        if (
             checkSelfPermission(camPermission) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(arrayOf(camPermission), 1)
-        } else {
-
         }
     }
 
@@ -95,12 +93,19 @@ class MainActivity : NativeActivity() {
     fun updateTexImage(){
         s.updateTexImage()
     }
+    fun requestPermissions(){
+        while(checkSelfPermission(android.Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED){
+            requestPermissions(arrayOf(android.Manifest.permission.CAMERA), 1)
+        }
+    }
     private external fun onImageAvailable()
-    fun getSurfaceTexture(id: Int): Surface {
+    fun getSurfaceTexture(id: Int, width: Int,height: Int): Surface {
         s = SurfaceTexture(id)
+        s.setDefaultBufferSize(width,height)
         s.setOnFrameAvailableListener {
             onImageAvailable()
         }
+
         return Surface(s)
     }
 }

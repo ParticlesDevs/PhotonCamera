@@ -4,6 +4,14 @@ plugins {
 }
 
 android {
+    signingConfigs {
+        debug {
+            storeFile file('/home/eszdman/StudioProjects/PhotonCamera/key/PcamLeak.jks')
+            storePassword 'photoncamera'
+            keyPassword 'photoncamera'
+            keyAlias 'key0'
+        }
+    }
     namespace 'com.particlesdevs.PhotonCamera'
     compileSdk 32
     def versionPropsFile = file('version.properties')

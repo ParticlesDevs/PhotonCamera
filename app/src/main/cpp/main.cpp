@@ -1,11 +1,7 @@
 // dear imgui: standalone example application for Android + OpenGL ES 3
 // If you are new to dear imgui, see examples/README.txt and documentation at the top of imgui.cpp.
 #include "main.h"
-
 using namespace std;
-
-
-
 int32_t getDensityDpi(android_app* app) {
     AConfiguration* config = AConfiguration_new();
     AConfiguration_fromAssetManager(config, app->activity->assetManager);
@@ -55,6 +51,7 @@ void init(struct android_app* app)
         eglMakeCurrent(g_EglDisplay, g_EglSurface, g_EglSurface, g_EglContext);
     }
 
+
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -77,12 +74,7 @@ void init(struct android_app* app)
 
     JavaVM* java_vm = g_App->activity->vm;
 
-    jint jni_return = java_vm->GetEnv((void**)&g_App->activity->env, JNI_VERSION_1_6);
-    if (jni_return == JNI_ERR) {
-        return;
-    }
-
-    jni_return = java_vm->AttachCurrentThread(&g_App->activity->env, NULL);
+    jint jni_return = java_vm->AttachCurrentThread(&g_App->activity->env, NULL);
     if (jni_return != JNI_OK)
         return;
 
@@ -98,12 +90,21 @@ void init(struct android_app* app)
     glGenTextures(1,&camera.texID);
     glBindTexture(GL_TEXTURE_EXTERNAL_OES, camera.texID);
     uiManager.previewTexture = camera.texID;
-
-    method_id = g_App->activity->env->GetMethodID(native_activity_clazz, "getSurfaceTexture", "(I)Landroid/view/Surface;");
+    method_id = g_App->activity->env->GetMethodID(native_activity_clazz, "requestPermissions", "()V");
+    if (method_id == NULL)
+        return;
+    g_App->activity->env->CallVoidMethod(g_App->activity->clazz, method_id);
+    camera.OpenCamera(TEMPLATE_PREVIEW);
+    auto mainSize = camera.MainSize(AIMAGE_FORMAT_YUV_420_888,16.f/9.f);
+    LOGD("Main size: %d %d",mainSize.first,mainSize.second);
+    auto size = camera.PreviewSize(mainSize);
+    LOGD("PreviewSize size: %d %d",size.first,size.second);
+    uiManager.previewAspect = float(mainSize.first)/float(mainSize.second);
+    method_id = g_App->activity->env->GetMethodID(native_activity_clazz, "getSurfaceTexture", "(III)Landroid/view/Surface;");
     if (method_id == NULL)
         return;
     LOGD("Created Surface");
-    auto surface = g_App->activity->env->CallObjectMethod(g_App->activity->clazz,method_id,camera.texID);
+    auto surface = g_App->activity->env->CallObjectMethod(g_App->activity->clazz,method_id,camera.texID,size.first,size.second);
     auto window = ANativeWindow_fromSurface(g_App->activity->env, surface);
 
 
@@ -322,12 +323,6 @@ void android_main(struct android_app* app)
         if(g_Initialized) {
             tick();
         }
-        //Slow tick
-        if(!(cnt % 15)){
-
-            uiManager.previewSize = ImVec2{static_cast<float>(ANativeWindow_getWidth(camera.theNativeWindow)),
-                                           static_cast<float>(ANativeWindow_getHeight(camera.theNativeWindow))};
-        }
         cnt++;
     }
 }
@@ -381,14 +376,17 @@ static int PollUnicodeChars()
 // Helper to retrieve data placed into the assets/ directory (android/app/src/main/assets)
 static int GetAssetData(const char* filename, void** outData)
 {
-    int num_bytes = 0;
+    long num_bytes = 0;
     AAsset* asset_descriptor = AAssetManager_open(g_App->activity->assetManager, filename, AASSET_MODE_BUFFER);
     if (asset_descriptor)
     {
-        num_bytes = AAsset_getLength(asset_descriptor);
+        num_bytes = AAsset_getLength(asset_descriptor)+1;
         *outData = IM_ALLOC(num_bytes);
-        while(AAsset_read(asset_descriptor, *outData, num_bytes) < num_bytes){}
+        LOGD("Asset size: %d",num_bytes);
+        LOGD("Asset read: %d",AAsset_read(asset_descriptor, *outData, num_bytes));
         AAsset_close(asset_descriptor);
+        ((char*)*outData)[num_bytes] = 0;
+        ((char*)*outData)[num_bytes-1] = 0;
         //IM_ASSERT(num_bytes_read == num_bytes);
     }
     return num_bytes;

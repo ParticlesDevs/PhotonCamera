@@ -13,14 +13,17 @@ void Preview(UiManager* manager){
         ImGui::End();
         return;
     }
-    if (ImGui::Button("Settings")) {
-        manager->currentLayout = SETTINGS;
-    }
-    ImGui::SetCursorPos(disp*0.f);
-    auto previewSize = ImVec2{disp.x,disp.x*4/3};//Example previewSize
+    auto cursor = ImGui::GetCursorPos();
+    ImGui::SetCursorPos(cursor);
+    auto previewSize = ImVec2{disp.x,disp.x*manager->previewAspect};//Example MainSize
     //Camera preview
     if(manager->previewTexture != 0)
         UiTexture::Image(manager->previewTexture,UiTexture::OES,previewSize);
+    ImGui::SetCursorPos(cursor);
+    if (ImGui::Button("Settings")) {
+        manager->currentLayout = SETTINGS;
+    }
+
     auto bsize = ImVec2{0.5f*manager->DPI,0.5f*manager->DPI};
     ImGui::SetCursorPos(ImVec2{disp.x*0.2f-bsize.x/2,disp.y*0.9f - bsize.y/2});
     ImGui::Button("Cam",bsize);
