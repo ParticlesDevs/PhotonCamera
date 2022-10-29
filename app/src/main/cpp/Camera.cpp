@@ -24,6 +24,10 @@ static void capture_session_on_active(void *context, ACameraCaptureSession *sess
 static void capture_session_on_closed(void *context, ACameraCaptureSession *session) {
     LOGI("Session is closed. %p\n", session);
 }
+static void captureCompleted(void* context, ACameraCaptureSession* session,
+                             ACaptureRequest* request, const ACameraMetadata* result){
+    //LOGI("Capture Completed %p\n", session);
+}
 
 void Camera::OpenCamera(ACameraDevice_request_template templateId) {
     ACameraIdList *cameraIdList = NULL;
@@ -51,7 +55,6 @@ void Camera::OpenCamera(ACameraDevice_request_template templateId) {
 
     camera_status = ACameraManager_getCameraCharacteristics(cameraManager, selectedCameraId,
                                                             &cameraMetadata);
-
     if (camera_status != ACAMERA_OK) {
         LOGE("Failed to get camera meta data of ID:%s\n", selectedCameraId);
     }
@@ -134,12 +137,16 @@ void Camera::StartPreview() {
     ACaptureRequest_addTarget(captureRequest, cameraOutputTarget);
 
     ACaptureSessionOutput_create(theNativeWindow, &sessionOutput);
+
+
     ACaptureSessionOutputContainer_add(captureSessionOutputContainer, sessionOutput);
 
     ACameraDevice_createCaptureSession(cameraDevice, captureSessionOutputContainer,
                                        &captureSessionStateCallbacks, &captureSession);
+    captureSessionCaptureCallbacks.onCaptureCompleted = captureCompleted;
 
-    ACameraCaptureSession_setRepeatingRequest(captureSession, NULL, 1, &captureRequest, NULL);
+    ACameraCaptureSession_setRepeatingRequest(captureSession, &captureSessionCaptureCallbacks, 1, &captureRequest, NULL);
+
 }
 
 

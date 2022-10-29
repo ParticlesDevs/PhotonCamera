@@ -6,6 +6,7 @@
 #define PHOTONCAMERA_PREVIEW_H
 #include "UiManager.h"
 #include "imgui.h"
+#include <Texture.h>
 #ifndef IMGUI_DEFINE_MATH_OPERATORS
 #define IMGUI_DEFINE_MATH_OPERATORS
 #endif

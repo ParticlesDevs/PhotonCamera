@@ -15,10 +15,11 @@ add_library(${CMAKE_PROJECT_NAME} SHARED
         ${SRC_DIR}/deps/imgui/imgui_tables.cpp
         ${SRC_DIR}/deps/imgui/imgui_widgets.cpp
         ${SRC_DIR}/impl/imgui_impl_android.cpp
-        ${SRC_DIR}/impl/imgui_impl_opengl3.cpp
+        ${SRC_DIR}/impl/imgui_impl_opengl3_android.cpp
         ${SRC_DIR}/UI/Preview.cpp
         ${SRC_DIR}/UI/Settings.cpp
         ${SRC_DIR}/UI/UiManager.cpp
+        ${SRC_DIR}/UI/Texture.cpp
         ${ANDROID_NDK}/sources/android/native_app_glue/android_native_app_glue.c
         )
 

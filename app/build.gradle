@@ -6,17 +6,37 @@ plugins {
 android {
     namespace 'com.particlesdevs.PhotonCamera'
     compileSdk 32
+    def versionPropsFile = file('version.properties')
+    def versionBuild
+    if (versionPropsFile.canRead()) {
+        Properties versionProps = new Properties()
+        versionProps.load(new FileInputStream(versionPropsFile))
+        versionBuild = versionProps['VERSION_BUILD'].toInteger()
+    } else {
+        throw new FileNotFoundException("Could not read version.properties!")
+    }
+    ext.autoIncrementBuildNumber = {
+        if (versionPropsFile.canRead()) {
+            Properties versionProps = new Properties()
+            versionProps.load(new FileInputStream(versionPropsFile))
+            versionBuild = versionProps['VERSION_BUILD'].toInteger() + 1
+            versionProps['VERSION_BUILD'] = versionBuild.toString()
+            versionProps.store(versionPropsFile.newWriter(), null)
+        } else {
+            throw new FileNotFoundException("Could not read version.properties!")
+        }
+    }
 
     defaultConfig {
         applicationId "com.particlesdevs.PhotonCamera"
         minSdk 24
         targetSdk 32
-        versionCode 1
-        versionName "1.0"
+        versionCode versionBuild
         ndk {
             abiFilters "arm64-v8a"
             abiFilters "armeabi-v7a"
         }
+        versionName '0.852'
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -37,6 +57,11 @@ android {
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
+    }
+    applicationVariants.all {
+        variant -> variant.outputs.all {
+            outputFileName = "NPhotonCamera-${versionName}${versionBuild}-${variant.name}.apk"
+        }
     }
     kotlinOptions {
         jvmTarget = '1.8'

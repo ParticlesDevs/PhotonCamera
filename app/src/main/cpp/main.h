@@ -5,15 +5,18 @@
 #ifndef PHOTONCAMERA_MAIN_H
 #define PHOTONCAMERA_MAIN_H
 #include "imgui.h"
+#include <string>
 #include "imgui_impl_android.h"
-#include "imgui_impl_opengl3.h"
+#include "imgui_impl_opengl3_android.h"
 #include "UiManager.h"
 #include "Camera.h"
 #include <android/log.h>
 #include <android_native_app_glue.h>
 #include <android/asset_manager.h>
+#include <android/surface_texture.h>
 #include <EGL/egl.h>
-#include <GLES3/gl3.h>
+#include <gl.h>
+#include "jni.h"
 #include <vector>
 using namespace std;
 // Data

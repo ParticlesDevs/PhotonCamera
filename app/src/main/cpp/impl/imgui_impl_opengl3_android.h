@@ -19,6 +19,7 @@
 
 #pragma once
 #include "imgui.h"      // IMGUI_IMPL_API
+#include <Texture.h>
 
 // Backend API
 IMGUI_IMPL_API bool     ImGui_ImplOpenGL3_Init(const char* glsl_version = nullptr, const char* fragmentShader = nullptr);

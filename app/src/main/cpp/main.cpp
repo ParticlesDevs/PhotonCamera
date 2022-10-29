@@ -1,6 +1,7 @@
 // dear imgui: standalone example application for Android + OpenGL ES 3
 // If you are new to dear imgui, see examples/README.txt and documentation at the top of imgui.cpp.
 #include "main.h"
+
 using namespace std;
 
 
@@ -69,48 +70,47 @@ void init(struct android_app* app)
 
     // Setup Platform/Renderer backends
     ImGui_ImplAndroid_Init(g_App->window);
-    ImGui_ImplOpenGL3_Init("#version 300 es");
+    const GLchar* fragment;
+    GetAssetData("shaders/ui/imgui.glsl", (void **) &fragment);
+    LOGD("Fragment code: %s",fragment);
+    ImGui_ImplOpenGL3_Init("#version 300 es",fragment);
 
     JavaVM* java_vm = g_App->activity->vm;
-    JNIEnv* java_env = NULL;
 
-    jint jni_return = java_vm->GetEnv((void**)&java_env, JNI_VERSION_1_6);
+    jint jni_return = java_vm->GetEnv((void**)&g_App->activity->env, JNI_VERSION_1_6);
     if (jni_return == JNI_ERR) {
         return;
     }
 
-
-    jni_return = java_vm->AttachCurrentThread(&java_env, NULL);
+    jni_return = java_vm->AttachCurrentThread(&g_App->activity->env, NULL);
     if (jni_return != JNI_OK)
         return;
 
-    jclass native_activity_clazz = java_env->GetObjectClass(g_App->activity->clazz);
+    jclass native_activity_clazz = g_App->activity->env->GetObjectClass(g_App->activity->clazz);
     if (native_activity_clazz == NULL)
         return;
 
-    jmethodID method_id = java_env->GetMethodID(native_activity_clazz, "getUnicodeByteBuffer", "()Ljava/nio/ByteBuffer;");
+    jmethodID method_id = g_App->activity->env->GetMethodID(native_activity_clazz, "getUnicodeByteBuffer", "()Ljava/nio/ByteBuffer;");
     if (method_id == NULL)
         return;
-    jobject buf = java_env->CallObjectMethod(g_App->activity->clazz, method_id);
-    unicodeBuffer = (int*)java_env->GetDirectBufferAddress(buf);
-
+    jobject buf = g_App->activity->env->CallObjectMethod(g_App->activity->clazz, method_id);
+    unicodeBuffer = (int*)g_App->activity->env->GetDirectBufferAddress(buf);
     glGenTextures(1,&camera.texID);
-    //glBindTexture(GL_TEXTURE_2D, camera.texID);
-    //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1920, 1080, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+    glBindTexture(GL_TEXTURE_EXTERNAL_OES, camera.texID);
     uiManager.previewTexture = camera.texID;
-    method_id = java_env->GetMethodID(native_activity_clazz, "getSurfaceTexture", "(I)Landroid/view/Surface;");
+
+    method_id = g_App->activity->env->GetMethodID(native_activity_clazz, "getSurfaceTexture", "(I)Landroid/view/Surface;");
     if (method_id == NULL)
         return;
     LOGD("Created Surface");
-    auto surface = java_env->CallObjectMethod(g_App->activity->clazz,method_id,camera.texID);
-    auto window = ANativeWindow_fromSurface(java_env, surface);
+    auto surface = g_App->activity->env->CallObjectMethod(g_App->activity->clazz,method_id,camera.texID);
+    auto window = ANativeWindow_fromSurface(g_App->activity->env, surface);
+
+
     ANativeWindow_acquire(window);
-    ANativeWindow_setBuffersGeometry(window,1920,1080,egl_format);
-    LOGD("Width: %d",ANativeWindow_getWidth(window));
+    //ANativeWindow_setBuffersGeometry(window,1920,1080,egl_format);
+    //LOGD("Width: %d",ANativeWindow_getWidth(window));
     camera.theNativeWindow = window;
-    jni_return = java_vm->DetachCurrentThread();
-    if (jni_return != JNI_OK)
-        return;
 
     // Load Fonts
     // - If no fonts are loaded, dear imgui will use the default font. You can also load multiple fonts and use ImGui::PushFont()/PopFont() to select them.
@@ -130,7 +130,7 @@ void init(struct android_app* app)
     void* font_data;
     int font_data_size;
     ImFont* font;
-    font_data_size = GetAssetData("NotoSansMono-Regular-Nerd-Font-Complete.ttf", &font_data);
+    font_data_size = GetAssetData("fonts/NotoSansMono-Regular-Nerd-Font-Complete.ttf", &font_data);
     font = io.Fonts->AddFontFromMemoryTTF(font_data, font_data_size, uiManager.DPI/10);
     IM_ASSERT(font != NULL);
     fonts.push_back(font);
@@ -225,6 +225,12 @@ void tick()
     glClear(GL_COLOR_BUFFER_BIT);
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
     eglSwapBuffers(g_EglDisplay, g_EglSurface);
+    if(uiManager.handler.updatePreview){
+        jclass native_activity_clazz = g_App->activity->env->GetObjectClass(g_App->activity->clazz);
+        jmethodID method_id = g_App->activity->env->GetMethodID(native_activity_clazz, "updateTexImage", "()V");
+        g_App->activity->env->CallVoidMethod(g_App->activity->clazz, method_id);
+        uiManager.handler.updatePreview = false;
+    }
 }
 
 void shutdown()
@@ -287,7 +293,7 @@ void android_main(struct android_app* app)
 
     app->onAppCmd = handleAppCmd;
     app->onInputEvent = handleInputEvent;
-
+    int cnt = 0;
     while (true)
     {
         int out_events;
@@ -313,7 +319,16 @@ void android_main(struct android_app* app)
         }
 
         // Initiate a new frame
-        tick();
+        if(g_Initialized) {
+            tick();
+        }
+        //Slow tick
+        if(!(cnt % 15)){
+
+            uiManager.previewSize = ImVec2{static_cast<float>(ANativeWindow_getWidth(camera.theNativeWindow)),
+                                           static_cast<float>(ANativeWindow_getHeight(camera.theNativeWindow))};
+        }
+        cnt++;
     }
 }
 
@@ -351,41 +366,9 @@ static int ShowSoftKeyboardInput()
 
 // Unfortunately, the native KeyEvent implementation has no getUnicodeChar() function.
 // Therefore, we implement the processing of KeyEvents in MainActivity.kt and poll
-// the resulting Unicode characters here via JNI and send them to Dear ImGui.
+// the resulting Unicode characters here via native buffer and send them to Dear ImGui.
 static int PollUnicodeChars()
 {
-    /*
-    JavaVM* java_vm = g_App->activity->vm;
-    JNIEnv* java_env = NULL;
-
-    jint jni_return = java_vm->GetEnv((void**)&java_env, JNI_VERSION_1_6);
-    if (jni_return == JNI_ERR)
-        return -1;
-
-    jni_return = java_vm->AttachCurrentThread(&java_env, NULL);
-    if (jni_return != JNI_OK)
-        return -2;
-
-    jclass native_activity_clazz = java_env->GetObjectClass(g_App->activity->clazz);
-    if (native_activity_clazz == NULL)
-        return -3;
-
-    jmethodID method_id = java_env->GetMethodID(native_activity_clazz, "pollUnicodeChar", "()I");
-    if (method_id == NULL)
-        return -4;
-
-    // Send the actual characters to Dear ImGui
-    ImGuiIO& io = ImGui::GetIO();
-    jint unicode_character;
-    while ((unicode_character = java_env->CallIntMethod(g_App->activity->clazz, method_id)) != 0)
-        io.AddInputCharacter(unicode_character);
-
-    jni_return = java_vm->DetachCurrentThread();
-    if (jni_return != JNI_OK)
-        return -5;
-
-    return 0;
-     */
     ImGuiIO& io = ImGui::GetIO();
     if(unicodeBuffer[1] != 0){
         for(int i =0; i<unicodeBuffer[0];i++){
@@ -393,8 +376,7 @@ static int PollUnicodeChars()
         }
         unicodeBuffer[0] = 0;
     }
-    return 0;
-}
+    return 0;}
 
 // Helper to retrieve data placed into the assets/ directory (android/app/src/main/assets)
 static int GetAssetData(const char* filename, void** outData)
@@ -405,9 +387,14 @@ static int GetAssetData(const char* filename, void** outData)
     {
         num_bytes = AAsset_getLength(asset_descriptor);
         *outData = IM_ALLOC(num_bytes);
-        int64_t num_bytes_read = AAsset_read(asset_descriptor, *outData, num_bytes);
+        while(AAsset_read(asset_descriptor, *outData, num_bytes) < num_bytes){}
         AAsset_close(asset_descriptor);
-        IM_ASSERT(num_bytes_read == num_bytes);
+        //IM_ASSERT(num_bytes_read == num_bytes);
     }
     return num_bytes;
+}
+
+extern "C" __attribute__((unused)) JNIEXPORT void JNICALL
+Java_com_particlesdevs_PhotonCamera_MainActivity_onImageAvailable(JNIEnv *env, jobject thiz) {
+    uiManager.handler.updatePreview = true;
 }
