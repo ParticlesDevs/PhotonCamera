@@ -9,6 +9,9 @@
 void UiManager::tick() {
     //ImGui::PushStyleVar(ImGuiStyleVar_FramePadding,ImVec2{});
     ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize,0);
+    ImGuiStyle& style = ImGui::GetStyle();
+    auto prevPos = style.WindowMenuButtonPosition;
+    style.WindowMenuButtonPosition = ImGuiDir_None;
     switch (UiManager::currentLayout) {
         case MAIN: {
             Preview(this);
@@ -19,5 +22,6 @@ void UiManager::tick() {
             break;
         }
     }
+    style.WindowMenuButtonPosition = prevPos;
     ImGui::PopStyleVar();
 }

@@ -1,6 +1,8 @@
 // dear imgui: standalone example application for Android + OpenGL ES 3
 // If you are new to dear imgui, see examples/README.txt and documentation at the top of imgui.cpp.
 #include "main.h"
+#include "imgui_internal.h"
+
 using namespace std;
 int32_t getDensityDpi(android_app* app) {
     AConfiguration* config = AConfiguration_new();
@@ -122,7 +124,7 @@ void init(struct android_app* app)
     // - Android: The TTF files have to be placed into the assets/ directory (android/app/src/main/assets), we use our GetAssetData() helper to retrieve them.
 
     // We load the default font with increased size to improve readability on many devices with "high" DPI.
-    auto DPI = getDensityDpi(app);
+    auto DPI = float(getDensityDpi(app));
     // Important: when calling AddFontFromMemoryTTF(), ownership of font_data is transfered by Dear ImGui by default (deleted is handled by Dear ImGui), unless we set FontDataOwnedByAtlas=false in ImFontConfig
     ImFontConfig font_cfg;
     font_cfg.SizePixels = DPI/10;
@@ -131,9 +133,9 @@ void init(struct android_app* app)
     void* font_data;
     int font_data_size;
     ImFont* font;
+    ImFormatString(font_cfg.Name, IM_ARRAYSIZE(font_cfg.Name), "NotoSansMono-Regular-Nerd.ttf, %dpx", (int)font_cfg.SizePixels);
     font_data_size = GetAssetData("fonts/NotoSansMono-Regular-Nerd-Font-Complete.ttf", &font_data);
-    font = io.Fonts->AddFontFromMemoryTTF(font_data, font_data_size, uiManager.DPI/10);
-    IM_ASSERT(font != NULL);
+    font = io.Fonts->AddFontFromMemoryTTF(font_data, font_data_size, uiManager.DPI/10,&font_cfg);
     fonts.push_back(font);
     io.FontDefault = font;
     //font_data_size = GetAssetData("DroidSans.ttf", &font_data);
@@ -153,6 +155,16 @@ void init(struct android_app* app)
     ImGui::GetStyle().ScaleAllSizes(uiManager.DPI/100);
 
     camera.StartPreview();
+    ImGuiStyle& style = ImGui::GetStyle();
+    style.ChildRounding = DPI/15.f;
+    style.FrameRounding = DPI/2.f;
+    style.GrabRounding = DPI/15.f;
+    style.WindowRounding = DPI/15.f;
+    style.PopupRounding = DPI/15.f;
+    style.TabRounding = DPI/15.f;
+    style.FramePadding = ImVec2{DPI/20.f,DPI/20.f};
+    style.WindowTitleAlign = ImVec2{0.5f,0.5f};
+    //style.WindowMenuButtonPosition = ImGuiDir_None;
     g_Initialized = true;
 }
 
@@ -165,7 +177,7 @@ void tick()
     // Our state
     static bool show_demo_window = true;
     static bool show_another_window = false;
-    static ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+    static ImVec4 clear_color = ImVec4(106.f/255.f, 72.f/255.f, 201.f/255.f, 1.00f);
 
     // Poll Unicode characters via native way
     // Fixed removed JNI overhead
