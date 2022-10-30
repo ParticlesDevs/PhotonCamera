@@ -37,7 +37,7 @@ class MainActivity : NativeActivity() {
         grantResults: IntArray
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == 1
+        if (requestCode == 1 && grantResults.size > 0
             && grantResults?.get(0) != PackageManager.PERMISSION_GRANTED) {
             Toast.makeText(this, "This app requires camera permission", Toast.LENGTH_SHORT).show()
             finish()

@@ -92,6 +92,7 @@
 #endif
 
 #include "imgui.h"
+#include "Texture.h"
 #include "imgui_impl_opengl3.h"
 #include <stdio.h>
 #if defined(_MSC_VER) && _MSC_VER <= 1500 // MSVC 2008 or earlier
@@ -189,6 +190,7 @@
 // OpenGL Data
 struct ImGui_ImplOpenGL3_Data
 {
+    UiTexture::UITexType texTypes[256];
     GLuint          GlVersion;               // Extracted at runtime using GL_MAJOR_VERSION, GL_MINOR_VERSION queries (e.g. 320 for GL 3.2)
     char            GlslVersionString[32];   // Specified by user or detected based on compile time GL settings.
     GLuint          FontTexture;
