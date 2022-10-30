@@ -5,6 +5,7 @@
 #include "UiManager.h"
 #include "Preview.h"
 #include "Settings.h"
+#include "Gallery.h"
 
 void UiManager::tick() {
     //ImGui::PushStyleVar(ImGuiStyleVar_FramePadding,ImVec2{});
@@ -19,6 +20,10 @@ void UiManager::tick() {
         }
         case SETTINGS: {
             Settings(this);
+            break;
+        }
+        case GALLERY: {
+            Gallery(this);
             break;
         }
     }

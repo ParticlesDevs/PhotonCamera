@@ -20,6 +20,8 @@ add_library(${CMAKE_PROJECT_NAME} SHARED
         ${SRC_DIR}/UI/Settings.cpp
         ${SRC_DIR}/UI/UiManager.cpp
         ${SRC_DIR}/UI/Texture.cpp
+        ${SRC_DIR}/UI/Gallery.cpp
+        ${SRC_DIR}/UI/Demos.cpp
         ${ANDROID_NDK}/sources/android/native_app_glue/android_native_app_glue.c
         )
 
@@ -45,4 +47,6 @@ target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE
         GLESv3
         camera2ndk
         log
+        )
+add_compile_definitions(ENABLE_DEMO_WINDOWS #comment this define to disable demo windows
         )

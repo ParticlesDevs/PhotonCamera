@@ -18,6 +18,11 @@
 #include <gl.h>
 #include "jni.h"
 #include <vector>
+
+#ifdef ENABLE_DEMO_WINDOWS
+#include "Demos.h"
+#endif
+
 using namespace std;
 // Data
 static EGLDisplay           g_EglDisplay = EGL_NO_DISPLAY;
