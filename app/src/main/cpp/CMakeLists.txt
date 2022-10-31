@@ -22,6 +22,7 @@ add_library(${CMAKE_PROJECT_NAME} SHARED
         ${SRC_DIR}/UI/Texture.cpp
         ${SRC_DIR}/UI/Gallery.cpp
         ${SRC_DIR}/UI/Demos.cpp
+        ${SRC_DIR}/UI/image_loader.cpp
         ${ANDROID_NDK}/sources/android/native_app_glue/android_native_app_glue.c
         )
 
