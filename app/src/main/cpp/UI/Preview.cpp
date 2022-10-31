@@ -50,7 +50,26 @@ void Preview(UiManager* manager){
         ImGui::SetCursorPos(ImVec2{edisp.x*0.5f-bsize.x*1.2f/2.0f,shiftY - bsize.y*1.2f/2.f});
         manager->takeShot = ImGui::Button("Shot",bsize*1.2);
         ImGui::SetCursorPos(ImVec2{edisp.x*0.8f-bsize.x/2,shiftY - bsize.y/2});
-        ImGui::Button("Gallery",bsize);
+
+#if 0 //trying ImageButton for Gallery
+
+        ImTextureID my_tex_id = io.Fonts->TexID;
+        auto my_tex_w = (float)bsize.x;
+        auto my_tex_h = (float)bsize.y;
+        ImVec2 uv0 = ImVec2(0.0f, 0.0f);                            // UV coordinates for lower-left
+        ImVec2 uv1 = ImVec2(32.0f / my_tex_w, 32.0f / my_tex_h);    // UV coordinates for (32,32) in our texture
+        ImVec4 bg_col = ImVec4(0.0f, 0.0f, 0.0f, 1.0f);             // Black background
+        ImVec4 tint_col = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);           // No tint
+        if(ImGui::ImageButton("Gallery", my_tex_id, bsize, uv0, uv1, bg_col, tint_col))
+        {
+            manager->currentLayout = GALLERY;
+        }
+#else
+        if(ImGui::Button("Gallery", bsize))
+        {
+            manager->currentLayout = GALLERY;
+        }
+#endif
     }
     ImGui::EndChild();
 
