@@ -16,6 +16,20 @@ void Settings(UiManager* manager){
     if (ImGui::Button("Back")){
         manager->currentLayout = MAIN;
     }
+    static bool show_demo_window = false;
     ImGui::SliderFloat("SliderExample",&manager->sliderTest,0,1,"%.3f",ImGuiSliderFlags_AlwaysClamp);
+    ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our window open/close state
+    static int counter = 0;
+    if (ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
+        counter++;
+    ImGui::SameLine();
+    ImGui::Text("counter = %d", counter);
     ImGui::End();
+
+    if (show_demo_window) {
+        auto prev = manager->style->WindowMenuButtonPosition;
+        manager->style->WindowMenuButtonPosition = ImGuiDir_Left;
+        ImGui::ShowDemoWindow(&show_demo_window);
+        manager->style->WindowMenuButtonPosition = prev;
+    }
 }

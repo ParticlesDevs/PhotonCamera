@@ -102,6 +102,8 @@ void init(struct android_app* app)
     auto size = camera.PreviewSize(mainSize);
     LOGD("PreviewSize size: %d %d",size.first,size.second);
     uiManager.previewAspect = float(mainSize.first)/float(mainSize.second);
+    uiManager.previewResolution = size;
+    uiManager.cameraResolution = mainSize;
     method_id = g_App->activity->env->GetMethodID(native_activity_clazz, "getSurfaceTexture", "(III)Landroid/view/Surface;");
     if (method_id == NULL)
         return;
@@ -165,6 +167,7 @@ void init(struct android_app* app)
     style.FramePadding = ImVec2{DPI/20.f,DPI/20.f};
     style.WindowTitleAlign = ImVec2{0.5f,0.5f};
     //style.WindowMenuButtonPosition = ImGuiDir_None;
+    uiManager.style = &ImGui::GetStyle();
     g_Initialized = true;
 }
 
@@ -173,11 +176,8 @@ void tick()
     ImGuiIO& io = ImGui::GetIO();
     if (g_EglDisplay == EGL_NO_DISPLAY)
         return;
-
-    // Our state
-    static bool show_demo_window = true;
-    static bool show_another_window = false;
-    static ImVec4 clear_color = ImVec4(106.f/255.f, 72.f/255.f, 201.f/255.f, 1.00f);
+    //static ImVec4 clear_color = ImVec4(106.f/255.f, 72.f/255.f, 201.f/255.f, 1.00f);
+    static ImVec4 clear_color = ImVec4(0.35f, 0.35f, 0.35f, 1.f);
 
     // Poll Unicode characters via native way
     // Fixed removed JNI overhead
@@ -193,43 +193,8 @@ void tick()
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplAndroid_NewFrame();
     ImGui::NewFrame();
-
-    // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
-    if (show_demo_window)
-        ImGui::ShowDemoWindow(&show_demo_window);
+    //Draw all our forms
     uiManager.tick();
-    // 2. Show a simple window that we create ourselves. We use a Begin/End pair to create a named window.
-    {
-        static float f = 0.0f;
-        static int counter = 0;
-
-        ImGui::Begin("Hello, world!"); // Create a window called "Hello, world!" and append into it.
-
-        ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
-        ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our window open/close state
-        ImGui::Checkbox("Another Window", &show_another_window);
-
-        ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
-        ImGui::ColorEdit3("clear color", (float*)&clear_color); // Edit 3 floats representing a color
-
-        if (ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
-            counter++;
-        ImGui::SameLine();
-        ImGui::Text("counter = %d", counter);
-
-        ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-        ImGui::End();
-    }
-
-    // 3. Show another simple window.
-    if (show_another_window)
-    {
-        ImGui::Begin("Another Window", &show_another_window);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
-        ImGui::Text("Hello from another window!");
-        if (ImGui::Button("Close Me"))
-            show_another_window = false;
-        ImGui::End();
-    }
 
     // Rendering
     ImGui::Render();
