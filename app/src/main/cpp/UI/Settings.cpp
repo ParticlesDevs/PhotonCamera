@@ -9,7 +9,7 @@ void Settings(UiManager* manager){
     auto disp = io.DisplaySize;
     ImGui::SetNextWindowSize(disp);
     ImGui::SetNextWindowPos(ImVec2{});
-    if(!ImGui::Begin("Settings", nullptr,ImGuiWindowFlags_NoMove|ImGuiWindowFlags_NoBringToFrontOnFocus)){
+    if(!ImGui::Begin("Settings", nullptr,ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove|ImGuiWindowFlags_NoBringToFrontOnFocus)){
         ImGui::End();
         return;
     }

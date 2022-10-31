@@ -8,7 +8,8 @@
 
 enum Layout: int {
     MAIN,
-    SETTINGS
+    SETTINGS,
+    GALLERY
 };
 class UiManager {
 
