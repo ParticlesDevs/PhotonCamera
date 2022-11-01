@@ -351,7 +351,7 @@ static int PollUnicodeChars()
     return 0;}
 
 // Helper to retrieve data placed into the assets/ directory (android/app/src/main/assets)
-static int GetAssetData(const char* filename, void** outData)
+int GetAssetData(const char* filename, void** outData)
 {
     long num_bytes = 0;
     AAsset* asset_descriptor = AAssetManager_open(g_App->activity->assetManager, filename, AASSET_MODE_BUFFER);

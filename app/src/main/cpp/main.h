@@ -36,7 +36,7 @@ static int* unicodeBuffer;
 // Forward declarations of helper functions
 static int ShowSoftKeyboardInput();
 static int PollUnicodeChars();
-static int GetAssetData(const char* filename, void** out_data);
+int GetAssetData(const char* filename, void** out_data);
 static UiManager uiManager;
 static Camera camera;
 
