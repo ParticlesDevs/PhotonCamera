@@ -21,22 +21,26 @@ void Gallery(UiManager *manager) {
     {
         manager->currentLayout = MAIN;
     }
-    static int row_cnt = 50;
+    static int row_cnt = 1;
+    static int total_images = 14;
     static int col_cnt = 3;
 
-    ImGui::SliderInt("row_cnt", &row_cnt, 1, 500, "%d", ImGuiSliderFlags_AlwaysClamp);
+    ImGui::SliderInt("total_images", &total_images, 0, 500, "%d", ImGuiSliderFlags_AlwaysClamp);
     ImGui::SliderInt("col_cnt", &col_cnt, 1, 6, "%d", ImGuiSliderFlags_AlwaysClamp);
+
+    row_cnt = total_images/col_cnt+(total_images%col_cnt>0);
 
     //Populate for dummy file names
     int cur_item = 0;
-    int dummydata[row_cnt][col_cnt];
-    for (int i = 0; i < row_cnt; ++i)
+    int dummydata[row_cnt*col_cnt];
+    for (int i = 0; i < row_cnt * col_cnt; ++i)
     {
-        for (int j = 0; j < col_cnt; ++j)
+        if (cur_item > (total_images - 1))
         {
-            dummydata[i][j] = cur_item;
-            cur_item++;
+            dummydata[i] = -1;
+            break;
         }
+        dummydata[i] = cur_item++;
     }
     //
 
@@ -69,6 +73,7 @@ void Gallery(UiManager *manager) {
     if (ImGui::BeginTable("img_table", col_cnt, table_flags, ImVec2(0.0f, 0.0f))) {
 
         float cur_col_width;
+        int cur_1d_idx;
         // Demonstrate using clipper for large vertical lists
         ImGuiListClipper clipper;
         clipper.Begin(row_cnt);
@@ -78,8 +83,11 @@ void Gallery(UiManager *manager) {
                 for (int col = 0; col < col_cnt; col++) {
                     ImGui::TableSetColumnIndex(col);
                     cur_col_width = ImGui::GetColumnWidth();
+                    cur_1d_idx = row*col_cnt+col;
 
-                    sprintf(name,"img_%d",dummydata[row][col]); //image caption as well as button id
+                    if(dummydata[cur_1d_idx]==-1) //break if data is not there
+                        break;
+                    sprintf(name,"img_%d",dummydata[cur_1d_idx]); //image caption as well as button id
 
                     ImVec2 bsize = ImVec2(cur_col_width*.7f,cur_col_width*.7f);
 
@@ -98,7 +106,7 @@ void Gallery(UiManager *manager) {
                    if(ImGui::ImageButton(name,(void *) (intptr_t) my_image_texture, bsize,uv0, uv1, bg_col, tint_col))
                    {
                        was_image_clicked ^= true;
-                       which_image_clicked = dummydata[row][col];
+                       which_image_clicked = dummydata[cur_1d_idx];
                    }
 
                    ImGui::PopStyleColor(1);
@@ -107,7 +115,7 @@ void Gallery(UiManager *manager) {
                     if(ImGui::Button(name,bsize))
                     {
                         was_image_clicked ^= true;
-                        which_image_clicked = dummydata[row][col];
+                        which_image_clicked = dummydata[cur_1d_idx];
                     }
 #endif
                     //Image Caption
