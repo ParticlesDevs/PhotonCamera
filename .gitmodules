@@ -4,3 +4,6 @@
 [submodule "app/src/main/cpp/deps/imgui"]
 	path = app/src/main/cpp/deps/imgui
 	url = https://github.com/ocornut/imgui
+[submodule "app/src/main/cpp/deps/GLCompute"]
+	path = app/src/main/cpp/deps/GLCompute
+	url = https://github.com/ParticlesDevs/GLCompute

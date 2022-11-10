@@ -8,6 +8,7 @@
 #include <string>
 #include "imgui_impl_android.h"
 #include "imgui_impl_opengl3_android.h"
+#include "FileManager.h"
 #include "UiManager.h"
 #include "Camera.h"
 #include <android/log.h>
@@ -28,7 +29,8 @@ using namespace std;
 static EGLDisplay           g_EglDisplay = EGL_NO_DISPLAY;
 static EGLSurface           g_EglSurface = EGL_NO_SURFACE;
 static EGLContext           g_EglContext = EGL_NO_CONTEXT;
-static struct android_app*  g_App = NULL;
+static struct android_app*  g_App = nullptr;
+static JNIEnv* env2 = nullptr;
 static bool                 g_Initialized = false;
 static char                 g_LogTag[] = "ImGuiExample";
 static vector<ImFont*> fonts;

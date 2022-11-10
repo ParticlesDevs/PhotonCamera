@@ -28,11 +28,14 @@ static void captureCompleted(void* context, ACameraCaptureSession* session,
                              ACaptureRequest* request, const ACameraMetadata* result){
     //LOGI("Capture Completed %p\n", session);
 }
+static void onImageAvailable(void* context, AImageReader* reader){
+    //AImageReader_acquireNextImage(reader,)
+}
 
 void Camera::OpenCamera(ACameraDevice_request_template templateId) {
-    ACameraIdList *cameraIdList = NULL;
-
-    const char *selectedCameraId = NULL;
+    ACameraIdList *cameraIdList = nullptr;
+    buffers = static_cast<void **>(malloc(sizeof(void *) * MAXFRAMES));
+    const char *selectedCameraId = nullptr;
     camera_status_t camera_status = ACAMERA_OK;
     ACameraManager *cameraManager = ACameraManager_create();
 
@@ -91,34 +94,39 @@ void Camera::OpenCamera(ACameraDevice_request_template templateId) {
 void Camera::CloseCamera()
 {
     camera_status_t camera_status = ACAMERA_OK;
+    delete buffers;
 
-    if (captureRequest != NULL) {
+    if (captureRequest != nullptr) {
         ACaptureRequest_free(captureRequest);
-        captureRequest = NULL;
+        captureRequest = nullptr;
     }
 
-    if (cameraOutputTarget != NULL) {
+    if (cameraOutputTarget != nullptr) {
         ACameraOutputTarget_free(cameraOutputTarget);
-        cameraOutputTarget = NULL;
+        cameraOutputTarget = nullptr;
     }
 
-    if (cameraDevice != NULL) {
+    if (cameraDevice != nullptr) {
         camera_status = ACameraDevice_close(cameraDevice);
 
         if (camera_status != ACAMERA_OK) {
             LOGE("Failed to close CameraDevice.\n");
         }
-        cameraDevice = NULL;
+        cameraDevice = nullptr;
     }
 
-    if (sessionOutput != NULL) {
+    if (sessionOutput != nullptr) {
         ACaptureSessionOutput_free(sessionOutput);
-        sessionOutput = NULL;
+        sessionOutput = nullptr;
+    }
+    if (inputFrames != nullptr) {
+        AImageReader_delete(inputFrames);
+        inputFrames = nullptr;
     }
 
-    if (captureSessionOutputContainer != NULL) {
+    if (captureSessionOutputContainer != nullptr) {
         ACaptureSessionOutputContainer_free(captureSessionOutputContainer);
-        captureSessionOutputContainer = NULL;
+        captureSessionOutputContainer = nullptr;
     }
 
     LOGI("Close Camera\n");
@@ -129,7 +137,7 @@ void Camera::StartPreview() {
 
     //LOGI("Surface is prepared in %p.\n", surface);
 
-    ACameraOutputTarget_create(theNativeWindow, &cameraOutputTarget);
+    camera_status = ACameraOutputTarget_create(theNativeWindow, &cameraOutputTarget);
     if (camera_status != ACAMERA_OK) {
         LOGE("Failed to close CameraDevice.\n");
     }
@@ -149,11 +157,14 @@ void Camera::StartPreview() {
 
     captureSessionCaptureCallbacks.onCaptureCompleted = captureCompleted;
 
-    ACameraCaptureSession_setRepeatingRequest(captureSession, &captureSessionCaptureCallbacks, 1, &captureRequest, NULL);
+    ACameraCaptureSession_setRepeatingRequest(captureSession, &captureSessionCaptureCallbacks, 1,
+                                              &captureRequest, nullptr);
 
 }
 
-std::pair<int, int> Camera::MainSize(AIMAGE_FORMATS format, float aspect) {
+
+std::pair<int, int> Camera::MainSize(AIMAGE_FORMATS format, float currentAspect) {
+    aspect = currentAspect;
     ACameraMetadata_const_entry entry;
     auto ret = ACameraMetadata_getConstEntry(cameraCharacteristics,ACAMERA_SCALER_AVAILABLE_STREAM_CONFIGURATIONS,&entry);
     if(ret != ACAMERA_OK) {
@@ -161,7 +172,7 @@ std::pair<int, int> Camera::MainSize(AIMAGE_FORMATS format, float aspect) {
     }
 
     int height = 0;
-    int widght = 0;
+    int width = 0;
     LOGD("Size, Type: %d %d",entry.count,entry.type);
     bool found = false;
     for(int i=0; i<int(entry.count);i+=4){
@@ -169,40 +180,52 @@ std::pair<int, int> Camera::MainSize(AIMAGE_FORMATS format, float aspect) {
             LOGD("Format, Width, Height: %d %d %d",entry.data.i32[i],entry.data.i32[i+1],entry.data.i32[i+2]);
             auto nw = entry.data.i32[i+1];
             auto nh = entry.data.i32[i+2];
-            if(aspect == 0.f) {
-                if (height * widght < nw * nh && !(found && (nw * nh > 5000 * 5000))) {
+            if(currentAspect == 0.f) {
+                if (height * width < nw * nh && !(found && (nw * nh > 5000 * 5000))) {
                     height = nh;
-                    widght = nw;
+                    width = nw;
                     found = true;
                 }
             } else {
-                if (abs(float(nw)/float(nh)-aspect) < 0.05f && height * widght < nw * nh && !(found && (nw * nh > 5000 * 5000))) {
+                if (abs(float(nw)/float(nh) - currentAspect) < 0.05f && height * width < nw * nh && !(found && (nw * nh > 5000 * 5000))) {
                     height = nh;
-                    widght = nw;
+                    width = nw;
                     found = true;
                 }
             }
         }
     }
-    return {widght,height};
+    if(inputFrames != nullptr){
+        AImageReader_delete(inputFrames);
+    }
+    AImageReader_new(width,height,format,MAXFRAMES,&inputFrames);
+    if(format != AIMAGE_FORMAT_YUV_420_888){
+        AImageReader_ImageListener listener;
+        listener.context = inputFrames;
+        listener.onImageAvailable = onImageAvailable;
+        AImageReader_setImageListener(inputFrames, &listener);
+    }
+    rawSize = {width, height};
+    return rawSize;
 }
 std::pair<int, int> Camera::PreviewSize(std::pair<int, int> mainSize) {
     ACameraMetadata_const_entry entry;
     ACameraMetadata_getConstEntry(cameraCharacteristics,ACAMERA_SCALER_AVAILABLE_STREAM_CONFIGURATIONS,&entry);
     float k = float(mainSize.first)/float(mainSize.second);
     int height = 0;
-    int widght = 0;
+    int width = 0;
     for(int i =0; i<entry.count;i+=4){
         if(entry.data.i32[i] == AIMAGE_FORMAT_YUV_420_888){
             LOGD("Format, Width, Height: %d %d %d",entry.data.i32[i],entry.data.i32[i+1],entry.data.i32[i+2]);
             auto nw = entry.data.i32[i+1];
             auto nh = entry.data.i32[i+2];
-            if(nw*nh > height*widght && nw*nh < 2000*2000 && abs(float(nw)/float(nh)-k) < 0.05f){
+            if(nw*nh > height * width && nw * nh < 2000 * 2000 && abs(float(nw) / float(nh) - k) < 0.05f){
                 height = nh;
-                widght = nw;
+                width = nw;
             }
         }
     }
-    return {widght,height};
+    previewSize = {width, height};
+    return previewSize;
 }
 

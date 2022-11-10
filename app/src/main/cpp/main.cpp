@@ -1,8 +1,5 @@
-// dear imgui: standalone example application for Android + OpenGL ES 3
-// If you are new to dear imgui, see examples/README.txt and documentation at the top of imgui.cpp.
 #include "main.h"
 #include "imgui_internal.h"
-
 using namespace std;
 int32_t getDensityDpi(android_app* app) {
     AConfiguration* config = AConfiguration_new();
@@ -13,6 +10,7 @@ int32_t getDensityDpi(android_app* app) {
 }
 void init(struct android_app* app)
 {
+    LOGD("Init");
     if (g_Initialized)
         return;
 
@@ -44,6 +42,7 @@ void init(struct android_app* app)
         ANativeWindow_setBuffersGeometry(g_App->window, 0, 0, egl_format);
 
         const EGLint egl_context_attributes[] = { EGL_CONTEXT_CLIENT_VERSION, 3, EGL_NONE };
+
         g_EglContext = eglCreateContext(g_EglDisplay, egl_config, EGL_NO_CONTEXT, egl_context_attributes);
 
         if (g_EglContext == EGL_NO_CONTEXT)
@@ -75,27 +74,28 @@ void init(struct android_app* app)
     ImGui_ImplOpenGL3_Init("#version 300 es",fragment);
 
     JavaVM* java_vm = g_App->activity->vm;
+    getAllImageFiles();
 
-    jint jni_return = java_vm->AttachCurrentThread(&g_App->activity->env, NULL);
+    jint jni_return = java_vm->AttachCurrentThread(&env2, NULL);
     if (jni_return != JNI_OK)
         return;
 
-    jclass native_activity_clazz = g_App->activity->env->GetObjectClass(g_App->activity->clazz);
+    jclass native_activity_clazz = env2->GetObjectClass(g_App->activity->clazz);
     if (native_activity_clazz == NULL)
         return;
 
-    jmethodID method_id = g_App->activity->env->GetMethodID(native_activity_clazz, "getUnicodeByteBuffer", "()Ljava/nio/ByteBuffer;");
+    jmethodID method_id = env2->GetMethodID(native_activity_clazz, "getUnicodeByteBuffer", "()Ljava/nio/ByteBuffer;");
     if (method_id == NULL)
         return;
-    jobject buf = g_App->activity->env->CallObjectMethod(g_App->activity->clazz, method_id);
-    unicodeBuffer = (int*)g_App->activity->env->GetDirectBufferAddress(buf);
+    jobject buf = env2->CallObjectMethod(g_App->activity->clazz, method_id);
+    unicodeBuffer = (int*)env2->GetDirectBufferAddress(buf);
     glGenTextures(1,&camera.texID);
     glBindTexture(GL_TEXTURE_EXTERNAL_OES, camera.texID);
     uiManager.previewTexture = camera.texID;
-    method_id = g_App->activity->env->GetMethodID(native_activity_clazz, "requestPermissions", "()V");
-    if (method_id == NULL)
-        return;
-    g_App->activity->env->CallVoidMethod(g_App->activity->clazz, method_id);
+    //method_id = env2->GetMethodID(native_activity_clazz, "requestPermissions", "()V");
+    //if (method_id == NULL)
+    //    return;
+    //env2->CallVoidMethod(g_App->activity->clazz, method_id);
     camera.OpenCamera(TEMPLATE_PREVIEW);
     auto mainSize = camera.MainSize(AIMAGE_FORMAT_YUV_420_888,16.f/9.f);
     LOGD("Main size: %d %d",mainSize.first,mainSize.second);
@@ -104,12 +104,12 @@ void init(struct android_app* app)
     uiManager.previewAspect = float(mainSize.first)/float(mainSize.second);
     uiManager.previewResolution = size;
     uiManager.cameraResolution = mainSize;
-    method_id = g_App->activity->env->GetMethodID(native_activity_clazz, "getSurfaceTexture", "(III)Landroid/view/Surface;");
+    method_id = env2->GetMethodID(native_activity_clazz, "getSurfaceTexture", "(III)Landroid/view/Surface;");
     if (method_id == NULL)
         return;
     LOGD("Created Surface");
-    auto surface = g_App->activity->env->CallObjectMethod(g_App->activity->clazz,method_id,camera.texID,size.first,size.second);
-    auto window = ANativeWindow_fromSurface(g_App->activity->env, surface);
+    auto surface = env2->CallObjectMethod(g_App->activity->clazz,method_id,camera.texID,size.first,size.second);
+    auto window = ANativeWindow_fromSurface(env2, surface);
 
 
     ANativeWindow_acquire(window);
@@ -204,19 +204,20 @@ void tick()
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
     eglSwapBuffers(g_EglDisplay, g_EglSurface);
     if(uiManager.handler.updatePreview){
-        jclass native_activity_clazz = g_App->activity->env->GetObjectClass(g_App->activity->clazz);
-        jmethodID method_id = g_App->activity->env->GetMethodID(native_activity_clazz, "updateTexImage", "()V");
-        g_App->activity->env->CallVoidMethod(g_App->activity->clazz, method_id);
+        jclass native_activity_clazz = env2->GetObjectClass(g_App->activity->clazz);
+        jmethodID method_id = env2->GetMethodID(native_activity_clazz, "updateTexImage", "()V");
+        env2->CallVoidMethod(g_App->activity->clazz, method_id);
         uiManager.handler.updatePreview = false;
     }
 }
 
-void shutdown()
+void shutdownUICamera()
 {
     if (!g_Initialized)
         return;
 
     // Cleanup
+    camera.CloseCamera();
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplAndroid_Shutdown();
     ImGui::DestroyContext();
@@ -239,24 +240,43 @@ void shutdown()
     g_EglSurface = EGL_NO_SURFACE;
     ANativeWindow_release(g_App->window);
 
+    //jclass native_activity_clazz = env2->GetObjectClass(g_App->activity->clazz);
+    //jmethodID method_id = env2->GetMethodID(native_activity_clazz, "closeMain", "()V");
+    //env2->CallVoidMethod(g_App->activity->clazz, method_id);
+    LOGD("Shutdown");
     g_Initialized = false;
+    //exit(1);
 }
 
 static void handleAppCmd(struct android_app* app, int32_t appCmd)
 {
+    LOGD("command %d",appCmd);
     switch (appCmd)
     {
+    case APP_CMD_START:
+
+        break;
     case APP_CMD_SAVE_STATE:
+        LOGD("SAVE");
         break;
     case APP_CMD_INIT_WINDOW:
+        LOGD("APP_CMD_INIT_WINDOW");
         init(app);
         break;
     case APP_CMD_TERM_WINDOW:
-        shutdown();
+        LOGD("APP_CMD_TERM_WINDOW");
+            shutdownUICamera();
         break;
     case APP_CMD_GAINED_FOCUS:
+        LOGD("GAIN FOCUS");
         break;
     case APP_CMD_LOST_FOCUS:
+        LOGD("NOT FOCUSED");
+        break;
+    case APP_CMD_RESUME:
+        LOGD("RESUME");
+        //if(g_App != nullptr)
+        //    init(app);
         break;
     }
 }
@@ -285,12 +305,13 @@ void android_main(struct android_app* app)
                 out_data->process(app, out_data);
 
             // Exit the app by returning from within the infinite loop
+
             if (app->destroyRequested != 0)
             {
                 // shutdown() should have been called already while processing the
                 // app command APP_CMD_TERM_WINDOW. But we play save here
                 if (!g_Initialized)
-                    shutdown();
+                    shutdownUICamera();
 
                 return;
             }
