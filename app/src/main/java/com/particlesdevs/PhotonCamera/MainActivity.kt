@@ -26,7 +26,7 @@ class MainActivity : NativeActivity() {
     lateinit var mHandler: Handler
     public override fun onCreate(savedInstanceState: Bundle?) {
         //Load library symbols with native glue
-        System.loadLibrary("PhotonCamera")
+        System.loadLibrary("NPhotonCamera")
         nativeBuffer = ByteBuffer.allocateDirect(32*4);
         nativeBuffer.position(0)
         nativeBuffer.order(ByteOrder.nativeOrder())

@@ -48,7 +48,9 @@ void Preview(UiManager* manager){
         ImGui::SetCursorPos(ImVec2{edisp.x*0.2f-bsize.x/2,shiftY - bsize.y/2});
         ImGui::Button("Cam",bsize);
         ImGui::SetCursorPos(ImVec2{edisp.x*0.5f-bsize.x*1.2f/2.0f,shiftY - bsize.y*1.2f/2.f});
-        manager->takeShot = ImGui::Button("Shot",bsize*1.2);
+        bool shot = ImGui::Button("Shot",bsize*1.2);
+        if(manager->takePicture != nullptr)
+            *manager->takePicture = shot;
         ImGui::SetCursorPos(ImVec2{edisp.x*0.8f-bsize.x/2,shiftY - bsize.y/2});
 
 #if 0 //trying ImageButton for Gallery

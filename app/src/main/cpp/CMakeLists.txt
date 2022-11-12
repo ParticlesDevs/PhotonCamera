@@ -1,12 +1,15 @@
 cmake_minimum_required(VERSION 3.6)
 
-project(PhotonCamera)
+project(NPhotonCamera)
 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 add_library(${CMAKE_PROJECT_NAME} SHARED
+        ${SRC_DIR}/Util/EglPlate.cpp
+        ${SRC_DIR}/Util/FileManager.cpp
+        ${SRC_DIR}/Util/Widgets.cpp
         ${SRC_DIR}/main.cpp
         ${SRC_DIR}/Camera.cpp
         ${SRC_DIR}/deps/imgui/imgui.cpp
@@ -23,7 +26,8 @@ add_library(${CMAKE_PROJECT_NAME} SHARED
         ${SRC_DIR}/UI/Gallery.cpp
         ${SRC_DIR}/UI/Demos.cpp
         ${SRC_DIR}/UI/image_loader.cpp
-        ${SRC_DIR}/Util/FileManager.cpp
+        ${SRC_DIR}/Processing/ProcessorQueue.cpp
+        ${SRC_DIR}/Processing/Processor.cpp
         ${ANDROID_NDK}/sources/android/native_app_glue/android_native_app_glue.c
         )
 

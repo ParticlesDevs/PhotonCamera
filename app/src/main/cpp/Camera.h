@@ -18,7 +18,13 @@ class Camera {
 public:
     std::pair<int, int> previewSize;
     std::pair<int, int> rawSize;
-    void **buffers;
+
+    int buffCnt = 0;
+    int buffAvailable = 0;
+    int requestedBuffers = 0;
+    AImage **buffers;
+
+    bool takePicture = false;
     float aspect;
 
     GLuint texID;

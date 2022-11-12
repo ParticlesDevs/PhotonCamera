@@ -22,17 +22,17 @@
 
 #ifdef ENABLE_DEMO_WINDOWS
 #include "Demos.h"
+#include "EglPlate.h"
+
 #endif
 
 using namespace std;
 // Data
-static EGLDisplay           g_EglDisplay = EGL_NO_DISPLAY;
-static EGLSurface           g_EglSurface = EGL_NO_SURFACE;
-static EGLContext           g_EglContext = EGL_NO_CONTEXT;
 static struct android_app*  g_App = nullptr;
 static JNIEnv* env2 = nullptr;
 static bool                 g_Initialized = false;
 static char                 g_LogTag[] = "ImGuiExample";
+static EglPlate *previewEgl;
 static vector<ImFont*> fonts;
 static int* unicodeBuffer;
 // Forward declarations of helper functions

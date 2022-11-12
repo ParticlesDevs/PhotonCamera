@@ -28,13 +28,26 @@ static void captureCompleted(void* context, ACameraCaptureSession* session,
                              ACaptureRequest* request, const ACameraMetadata* result){
     //LOGI("Capture Completed %p\n", session);
 }
+static void captureSequenceCompleted(void* context, ACameraCaptureSession* session,
+                                     int sequenceId, int64_t frameNumber){
+    //LOGI("Capture Completed %p\n", session);
+
+    for(;camera.buffCnt != camera.requestedBuffers;){
+
+    }
+    camera.buffCnt = 0;
+
+}
 static void onImageAvailable(void* context, AImageReader* reader){
-    //AImageReader_acquireNextImage(reader,)
+    AImage *image = nullptr;
+    AImageReader_acquireNextImage(reader,&image);
+    camera.buffers[camera.buffCnt] = image;
+    camera.buffCnt++;
 }
 
 void Camera::OpenCamera(ACameraDevice_request_template templateId) {
     ACameraIdList *cameraIdList = nullptr;
-    buffers = static_cast<void **>(malloc(sizeof(void *) * MAXFRAMES));
+    buffers = static_cast<AImage **>(malloc(sizeof(AImage *) * MAXFRAMES));
     const char *selectedCameraId = nullptr;
     camera_status_t camera_status = ACAMERA_OK;
     ACameraManager *cameraManager = ACameraManager_create();
@@ -157,6 +170,7 @@ void Camera::StartPreview() {
 
     captureSessionCaptureCallbacks.onCaptureCompleted = captureCompleted;
 
+    captureSessionCaptureCallbacks.onCaptureSequenceCompleted = captureSequenceCompleted;
     ACameraCaptureSession_setRepeatingRequest(captureSession, &captureSessionCaptureCallbacks, 1,
                                               &captureRequest, nullptr);
 

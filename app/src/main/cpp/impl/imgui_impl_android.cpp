@@ -202,8 +202,8 @@ int32_t ImGui_ImplAndroid_HandleInputEvent(AInputEvent* input_event)
             io.AddMousePosEvent(AMotionEvent_getX(input_event, event_pointer_index), AMotionEvent_getY(input_event, event_pointer_index));
             io.AddMouseButtonEvent(0, event_action == AMOTION_EVENT_ACTION_DOWN);
 
-            io.AddMousePosEvent(0, 0);//Cursor hovering bugfix
-            io.AddMouseButtonEvent(0, event_action == AMOTION_EVENT_ACTION_DOWN);
+            //io.AddMousePosEvent(0, 0);//Cursor hovering bugfix
+            //io.AddMouseButtonEvent(0, event_action == AMOTION_EVENT_ACTION_DOWN);
             break;
         }
         case AMOTION_EVENT_ACTION_DOWN:

@@ -8,7 +8,7 @@ int32_t getDensityDpi(android_app* app) {
     AConfiguration_delete(config);
     return density;
 }
-void init(struct android_app* app)
+void initUICamera(struct android_app* app)
 {
     LOGD("Init");
     if (g_Initialized)
@@ -16,43 +16,7 @@ void init(struct android_app* app)
 
     g_App = app;
     ANativeWindow_acquire(g_App->window);
-    EGLint egl_format;
-    // Initialize EGL
-    // This is mostly boilerplate code for EGL...
-    {
-        g_EglDisplay = eglGetDisplay(EGL_DEFAULT_DISPLAY);
-        if (g_EglDisplay == EGL_NO_DISPLAY)
-            __android_log_print(ANDROID_LOG_ERROR, g_LogTag, "%s", "eglGetDisplay(EGL_DEFAULT_DISPLAY) returned EGL_NO_DISPLAY");
-
-        if (eglInitialize(g_EglDisplay, 0, 0) != EGL_TRUE)
-            __android_log_print(ANDROID_LOG_ERROR, g_LogTag, "%s", "eglInitialize() returned with an error");
-
-        const EGLint egl_attributes[] = { EGL_BLUE_SIZE, 8, EGL_GREEN_SIZE, 8, EGL_RED_SIZE, 8, EGL_DEPTH_SIZE, 24, EGL_SURFACE_TYPE, EGL_WINDOW_BIT, EGL_NONE };
-        EGLint num_configs = 0;
-        if (eglChooseConfig(g_EglDisplay, egl_attributes, nullptr, 0, &num_configs) != EGL_TRUE)
-            __android_log_print(ANDROID_LOG_ERROR, g_LogTag, "%s", "eglChooseConfig() returned with an error");
-        if (num_configs == 0)
-            __android_log_print(ANDROID_LOG_ERROR, g_LogTag, "%s", "eglChooseConfig() returned 0 matching config");
-
-        // Get the first matching config
-        EGLConfig egl_config;
-        eglChooseConfig(g_EglDisplay, egl_attributes, &egl_config, 1, &num_configs);
-
-        eglGetConfigAttrib(g_EglDisplay, egl_config, EGL_NATIVE_VISUAL_ID, &egl_format);
-        ANativeWindow_setBuffersGeometry(g_App->window, 0, 0, egl_format);
-
-        const EGLint egl_context_attributes[] = { EGL_CONTEXT_CLIENT_VERSION, 3, EGL_NONE };
-
-        g_EglContext = eglCreateContext(g_EglDisplay, egl_config, EGL_NO_CONTEXT, egl_context_attributes);
-
-        if (g_EglContext == EGL_NO_CONTEXT)
-            __android_log_print(ANDROID_LOG_ERROR, g_LogTag, "%s", "eglCreateContext() returned EGL_NO_CONTEXT");
-
-        g_EglSurface = eglCreateWindowSurface(g_EglDisplay, egl_config, g_App->window, NULL);
-        eglMakeCurrent(g_EglDisplay, g_EglSurface, g_EglSurface, g_EglContext);
-    }
-
-
+    previewEgl = new EglPlate(g_App->window);
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -76,16 +40,16 @@ void init(struct android_app* app)
     JavaVM* java_vm = g_App->activity->vm;
     getAllImageFiles();
 
-    jint jni_return = java_vm->AttachCurrentThread(&env2, NULL);
+    jint jni_return = java_vm->AttachCurrentThread(&env2, nullptr);
     if (jni_return != JNI_OK)
         return;
 
     jclass native_activity_clazz = env2->GetObjectClass(g_App->activity->clazz);
-    if (native_activity_clazz == NULL)
+    if (native_activity_clazz == nullptr)
         return;
 
     jmethodID method_id = env2->GetMethodID(native_activity_clazz, "getUnicodeByteBuffer", "()Ljava/nio/ByteBuffer;");
-    if (method_id == NULL)
+    if (method_id == nullptr)
         return;
     jobject buf = env2->CallObjectMethod(g_App->activity->clazz, method_id);
     unicodeBuffer = (int*)env2->GetDirectBufferAddress(buf);
@@ -105,7 +69,7 @@ void init(struct android_app* app)
     uiManager.previewResolution = size;
     uiManager.cameraResolution = mainSize;
     method_id = env2->GetMethodID(native_activity_clazz, "getSurfaceTexture", "(III)Landroid/view/Surface;");
-    if (method_id == NULL)
+    if (method_id == nullptr)
         return;
     LOGD("Created Surface");
     auto surface = env2->CallObjectMethod(g_App->activity->clazz,method_id,camera.texID,size.first,size.second);
@@ -155,7 +119,7 @@ void init(struct android_app* app)
 
     // Arbitrary scale-up
     ImGui::GetStyle().ScaleAllSizes(uiManager.DPI/100);
-
+    uiManager.takePicture = &camera.takePicture;
     camera.StartPreview();
     ImGuiStyle& style = ImGui::GetStyle();
     style.ChildRounding = DPI/15.f;
@@ -174,7 +138,7 @@ void init(struct android_app* app)
 void tick()
 {
     ImGuiIO& io = ImGui::GetIO();
-    if (g_EglDisplay == EGL_NO_DISPLAY)
+    if (previewEgl->g_EglDisplay == EGL_NO_DISPLAY)
         return;
     //static ImVec4 clear_color = ImVec4(106.f/255.f, 72.f/255.f, 201.f/255.f, 1.00f);
     static ImVec4 clear_color = ImVec4(0.35f, 0.35f, 0.35f, 1.f);
@@ -202,7 +166,7 @@ void tick()
     glClearColor(clear_color.x * clear_color.w, clear_color.y * clear_color.w, clear_color.z * clear_color.w, clear_color.w);
     glClear(GL_COLOR_BUFFER_BIT);
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-    eglSwapBuffers(g_EglDisplay, g_EglSurface);
+    eglSwapBuffers(previewEgl->g_EglDisplay, previewEgl->g_EglSurface);
     if(uiManager.handler.updatePreview){
         jclass native_activity_clazz = env2->GetObjectClass(g_App->activity->clazz);
         jmethodID method_id = env2->GetMethodID(native_activity_clazz, "updateTexImage", "()V");
@@ -222,30 +186,11 @@ void shutdownUICamera()
     ImGui_ImplAndroid_Shutdown();
     ImGui::DestroyContext();
 
-    if (g_EglDisplay != EGL_NO_DISPLAY)
-    {
-        eglMakeCurrent(g_EglDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
-
-        if (g_EglContext != EGL_NO_CONTEXT)
-            eglDestroyContext(g_EglDisplay, g_EglContext);
-
-        if (g_EglSurface != EGL_NO_SURFACE)
-            eglDestroySurface(g_EglDisplay, g_EglSurface);
-
-        eglTerminate(g_EglDisplay);
-    }
-
-    g_EglDisplay = EGL_NO_DISPLAY;
-    g_EglContext = EGL_NO_CONTEXT;
-    g_EglSurface = EGL_NO_SURFACE;
+    previewEgl->~EglPlate();
+    delete previewEgl;
     ANativeWindow_release(g_App->window);
-
-    //jclass native_activity_clazz = env2->GetObjectClass(g_App->activity->clazz);
-    //jmethodID method_id = env2->GetMethodID(native_activity_clazz, "closeMain", "()V");
-    //env2->CallVoidMethod(g_App->activity->clazz, method_id);
-    LOGD("Shutdown");
+    LOGD("Shutdown UI and Camera");
     g_Initialized = false;
-    //exit(1);
 }
 
 static void handleAppCmd(struct android_app* app, int32_t appCmd)
@@ -254,14 +199,14 @@ static void handleAppCmd(struct android_app* app, int32_t appCmd)
     switch (appCmd)
     {
     case APP_CMD_START:
-
+        LOGD("APP_CMD_START");
         break;
     case APP_CMD_SAVE_STATE:
-        LOGD("SAVE");
+        LOGD("APP_CMD_SAVE_STATE");
         break;
     case APP_CMD_INIT_WINDOW:
         LOGD("APP_CMD_INIT_WINDOW");
-        init(app);
+            initUICamera(app);
         break;
     case APP_CMD_TERM_WINDOW:
         LOGD("APP_CMD_TERM_WINDOW");
@@ -271,14 +216,17 @@ static void handleAppCmd(struct android_app* app, int32_t appCmd)
         LOGD("GAIN FOCUS");
         break;
     case APP_CMD_LOST_FOCUS:
-        LOGD("NOT FOCUSED");
+        LOGD("APP_CMD_LOST_FOCUS");
         break;
     case APP_CMD_RESUME:
-        LOGD("RESUME");
+        LOGD("APP_CMD_RESUME");
         //if(g_App != nullptr)
-        //    init(app);
+        //    initUICamera(app);
+        break;
+    default:
         break;
     }
+
 }
 
 static int32_t handleInputEvent(struct android_app* app, AInputEvent* inputEvent)
