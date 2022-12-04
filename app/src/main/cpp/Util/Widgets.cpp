@@ -36,3 +36,10 @@ void ScrollWhenDraggingOnVoid(const ImVec2& delta, float animationK,float accele
     deltaFlow.y = deltaFlow.y * animationK;
     lastWindow = window;
 }
+
+bool CircleButton(const char* label, const ImVec2& size_arg,float size, const ImVec2& shift_arg){
+    ImDrawList* draw_list = ImGui::GetWindowDrawList();
+    draw_list->AddCircle(ImGui::GetCursorScreenPos()+shift_arg,size,ImColor(255,255,255),100,6.f);
+    bool returning = ImGui::Button(label,size_arg);
+    return returning;
+}

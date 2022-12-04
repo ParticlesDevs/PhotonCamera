@@ -4,6 +4,7 @@
 
 #include "Settings.h"
 #include "Widgets.h"
+#include "IconsMaterialDesign.h"
 #include <cstdlib>
 #include <string>
 void Settings(UiManager* manager){
@@ -11,13 +12,17 @@ void Settings(UiManager* manager){
     auto disp = io.DisplaySize;
     ImGui::SetNextWindowSize(disp);
     ImGui::SetNextWindowPos(ImVec2{});
-    if(!ImGui::Begin("Settings", nullptr,ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove|ImGuiWindowFlags_NoBringToFrontOnFocus)){
+    if(!ImGui::Begin("Settings", nullptr,ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove
+    |ImGuiWindowFlags_NoBringToFrontOnFocus
+    |ImGuiWindowFlags_NoDecoration)){
         ImGui::End();
         return;
     }
-    if (ImGui::Button("Back")){
+    ImGui::PushFont(io.Fonts->Fonts[3]);
+    if (ImGui::Button(ICON_MD_ARROW_BACK_IOS_NEW)){
         manager->currentLayout = MAIN;
     }
+    ImGui::PopFont();
     static bool show_demo_window = false;
     ImGui::SliderFloat("SliderExample",&manager->sliderTest,0,1,"%.3f",ImGuiSliderFlags_AlwaysClamp);
     ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our window open/close state
@@ -34,7 +39,7 @@ void Settings(UiManager* manager){
         ImGui::Text("Scroll acceleration");
         ImGui::SliderFloat("##Accel",&scrollAccel,0.f,5.f);
         ImGui::Text("Scroll friction");
-        ImGui::SliderFloat("##Friction",&motionK,0.f,1.f);
+        ImGui::SliderFloat("##Friction",&motionK,0.8f,1.f);
     }
     static int counter = 0;
     if (ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)

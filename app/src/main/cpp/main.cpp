@@ -1,5 +1,7 @@
 #include "main.h"
 #include "imgui_internal.h"
+#include "IconsMaterialDesign.h"
+
 using namespace std;
 int32_t getDensityDpi(android_app* app) {
     AConfiguration* config = AConfiguration_new();
@@ -93,17 +95,41 @@ void initUICamera(struct android_app* app)
     auto DPI = float(getDensityDpi(app));
     // Important: when calling AddFontFromMemoryTTF(), ownership of font_data is transfered by Dear ImGui by default (deleted is handled by Dear ImGui), unless we set FontDataOwnedByAtlas=false in ImFontConfig
     ImFontConfig font_cfg;
-    font_cfg.SizePixels = DPI/10;
+
     io.Fonts->AddFontDefault(&font_cfg);
     uiManager.DPI = DPI;
     void* font_data;
     int font_data_size;
     ImFont* font;
+
+    font_cfg.SizePixels = DPI/10;
     ImFormatString(font_cfg.Name, IM_ARRAYSIZE(font_cfg.Name), "NotoSansMono-Regular-Nerd.ttf, %dpx", (int)font_cfg.SizePixels);
     font_data_size = GetAssetData("fonts/NotoSansMono-Regular-Nerd-Font-Complete.ttf", &font_data);
-    font = io.Fonts->AddFontFromMemoryTTF(font_data, font_data_size, uiManager.DPI/10,&font_cfg);
+    font = io.Fonts->AddFontFromMemoryTTF(font_data, font_data_size, font_cfg.SizePixels,&font_cfg);
     fonts.push_back(font);
     io.FontDefault = font;
+    font_cfg.SizePixels = DPI/10;
+    ImFormatString(font_cfg.Name, IM_ARRAYSIZE(font_cfg.Name), FONT_ICON_FILE_NAME_MD ", %dpx", (int)font_cfg.SizePixels);
+    font_data_size = GetAssetData("fonts/" FONT_ICON_FILE_NAME_MD, &font_data);
+    font_cfg.SizePixels = uiManager.DPI/3;
+    //font_cfg.MergeMode = true;
+    ImWchar ranges[] =
+    {
+            0xe3fa, 0xe3fa,
+            0xe863, 0xe863,
+            0xef68,0xef68,
+            0xe8b8,0xe8b8,
+            0xe2ea,0xe2ea,
+            0,
+    };
+    font = io.Fonts->AddFontFromMemoryTTF(font_data, font_data_size, font_cfg.SizePixels,&font_cfg,ranges);
+    fonts.push_back(font);
+    font_cfg.SizePixels = font_cfg.SizePixels/(2.0);
+    font = io.Fonts->AddFontFromMemoryTTF(font_data, font_data_size, font_cfg.SizePixels,&font_cfg,ranges);
+    fonts.push_back(font);
+
+    io.Fonts->Build();
+
     //font_data_size = GetAssetData("DroidSans.ttf", &font_data);
     //font = io.Fonts->AddFontFromMemoryTTF(font_data, font_data_size, 16.0f);
     //IM_ASSERT(font != NULL);
@@ -130,6 +156,12 @@ void initUICamera(struct android_app* app)
     style.TabRounding = DPI/15.f;
     style.FramePadding = ImVec2{DPI/20.f,DPI/20.f};
     style.WindowTitleAlign = ImVec2{0.5f,0.5f};
+    style.Colors[ImGuiCol_Button] = ImVec4{0,0,0,0.1};
+    style.Colors[ImGuiCol_ButtonHovered] = style.Colors[ImGuiCol_Button];
+    style.Colors[ImGuiCol_HeaderHovered] = style.Colors[ImGuiCol_Header];
+    style.Colors[ImGuiCol_TabHovered] = style.Colors[ImGuiCol_Tab];
+    style.Colors[ImGuiCol_FrameBgHovered] = style.Colors[ImGuiCol_FrameBg];
+    style.Colors[ImGuiCol_ScrollbarGrabHovered] = style.Colors[ImGuiCol_ScrollbarGrab];
     //style.WindowMenuButtonPosition = ImGuiDir_None;
     uiManager.style = &ImGui::GetStyle();
     g_Initialized = true;
@@ -141,7 +173,8 @@ void tick()
     if (previewEgl->g_EglDisplay == EGL_NO_DISPLAY)
         return;
     //static ImVec4 clear_color = ImVec4(106.f/255.f, 72.f/255.f, 201.f/255.f, 1.00f);
-    static ImVec4 clear_color = ImVec4(0.35f, 0.35f, 0.35f, 1.f);
+    //static ImVec4 clear_color = ImVec4(0.35f, 0.35f, 0.35f, 1.f);
+    static ImVec4 clear_color = ImVec4(0.f, 0.f, 0.f, 1.f);
 
     // Poll Unicode characters via native way
     // Fixed removed JNI overhead

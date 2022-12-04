@@ -5,6 +5,7 @@ project(NPhotonCamera)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+
 set(SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 add_library(${CMAKE_PROJECT_NAME} SHARED
         ${SRC_DIR}/Util/EglPlate.cpp
@@ -35,9 +36,7 @@ set(CMAKE_SHARED_LINKER_FLAGS
         "${CMAKE_SHARED_LINKER_FLAGS} -u ANativeActivity_onCreate"
         )
 
-target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE
-        IMGUI_IMPL_OPENGL_ES3
-        )
+
 
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
         ${SRC_DIR}/deps/imgui
@@ -45,6 +44,12 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
         ${SRC_DIR}/inc
         ${SRC_DIR}
         ${ANDROID_NDK}/sources/android/native_app_glue
+        )
+target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE
+        IMGUI_USER_CONFIG=<imguiConf.h>
+        )
+target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE
+        IMGUI_IMPL_OPENGL_ES3
         )
 
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE

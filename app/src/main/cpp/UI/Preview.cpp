@@ -3,6 +3,8 @@
 //
 
 #include "Preview.h"
+#include "IconsMaterialDesign.h"
+#include "Widgets.h"
 
 void Preview(UiManager* manager){
     auto io = ImGui::GetIO();
@@ -12,26 +14,35 @@ void Preview(UiManager* manager){
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding,ImVec2{});
 
     if(!ImGui::Begin("Preview", nullptr,ImGuiWindowFlags_NoMove|ImGuiWindowFlags_NoBringToFrontOnFocus|
-    ImGuiWindowFlags_NoBackground|ImGuiWindowFlags_NoResize)){
+    ImGuiWindowFlags_NoBackground|ImGuiWindowFlags_NoResize|ImGuiWindowFlags_NoDecoration)){
         ImGui::PopStyleVar();
         ImGui::PopStyleColor();
         ImGui::End();
         return;
     }
+    ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4{0,0,0,0.35f});
     auto cursor = ImGui::GetCursorPos();
-    auto edisp = disp-cursor;
+    auto edisp = disp-ImGui::GetCursorScreenPos();
     //ImGui::SetCursorPos(cursor+ImVec2{0,manager->DPI*0.25f});
 
-
+    auto bsize = ImVec2{0.45f*manager->DPI,0.45f*manager->DPI};
+    auto bsize2 = bsize/1.7;
     ImGui::SetCursorPos(cursor);
     auto previewSize = ImVec2{disp.x,disp.x*manager->previewAspect};//Example MainSize
     //Camera preview
+
     if(manager->previewTexture != 0)
         UiTexture::Image(manager->previewTexture,UiTexture::OES,previewSize);
     ImGui::SetCursorPos(cursor);
-    if (ImGui::Button("Settings")) {
-        manager->currentLayout = SETTINGS;
+    ImGui::PushFont(io.Fonts->Fonts[3]);
+    if (ImGui::BeginChild("##0",ImVec2{0,bsize2.y},false,ImGuiWindowFlags_NoDecoration)) {
+        ImGui::SetCursorPos(ImGui::GetCursorPos()+ImVec2{bsize2.x/4,0});
+        if (ImGui::Button(ICON_MD_SETTINGS, bsize2)) {
+            manager->currentLayout = SETTINGS;
+        }
+        ImGui::EndChild();
     }
+    ImGui::PopFont();
     if (ImGui::BeginChild("##0")){
         auto col = ImVec4{0,1,0,1};
         ImGui::TextColored(col,"%.2f FPS", ImGui::GetIO().Framerate);
@@ -40,18 +51,19 @@ void Preview(UiManager* manager){
         ImGui::TextColored(col,"%d x %d Camera",manager->cameraResolution.first,manager->cameraResolution.second);
     }
     ImGui::EndChild();
-    auto bsize = ImVec2{0.45f*manager->DPI,0.45f*manager->DPI};
+
     ImGui::SetCursorPos(cursor+ImVec2{0,edisp.y - bsize.y*2});
-    ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4{0,0,0,0.35f});
     if (ImGui::BeginChild("##1")){
         auto shiftY = bsize.y;
         ImGui::SetCursorPos(ImVec2{edisp.x*0.2f-bsize.x/2,shiftY - bsize.y/2});
-        ImGui::Button("Cam",bsize);
-        ImGui::SetCursorPos(ImVec2{edisp.x*0.5f-bsize.x*1.2f/2.0f,shiftY - bsize.y*1.2f/2.f});
-        bool shot = ImGui::Button("Shot",bsize*1.2);
+        ImGui::PushFont(io.Fonts->Fonts[2]);
+        CircleButton(ICON_MD_AUTORENEW,bsize,bsize.x/2,ImVec2{bsize.x/2,bsize.y/2});
+        ImGui::SetCursorPos(ImVec2{edisp.x*0.5f-bsize.x/2.0f,shiftY - bsize.y/2.f});
+        bool shot = CircleButton(ICON_MD_LENS,bsize,bsize.x/2,ImVec2{bsize.x/2,bsize.y/2});
         if(manager->takePicture != nullptr)
             *manager->takePicture = shot;
         ImGui::SetCursorPos(ImVec2{edisp.x*0.8f-bsize.x/2,shiftY - bsize.y/2});
+
 
 #if 0 //trying ImageButton for Gallery
 
@@ -67,11 +79,12 @@ void Preview(UiManager* manager){
             manager->currentLayout = GALLERY;
         }
 #else
-        if(ImGui::Button("Gallery", bsize))
+        if(CircleButton(ICON_MD_PHOTO_CAMERA_BACK,bsize,bsize.x/2,ImVec2{bsize.x/2,bsize.y/2}))
         {
             manager->currentLayout = GALLERY;
         }
 #endif
+        ImGui::PopFont();
     }
     ImGui::EndChild();
 

@@ -1,9 +1,9 @@
 //
 // Created by eszdman on 23.10.2022.
 //
-
 #ifndef PHOTONCAMERA_MAIN_H
 #define PHOTONCAMERA_MAIN_H
+#include "imguiConf.h"
 #include "imgui.h"
 #include <string>
 #include "imgui_impl_android.h"
