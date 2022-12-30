@@ -24,6 +24,7 @@ void Settings(UiManager* manager){
     }
     ImGui::PopFont();
     static bool show_demo_window = false;
+    ImGui::SliderInt("FrameCount",&manager->parameters->maxRequest,3,50);
     ImGui::SliderFloat("SliderExample",&manager->sliderTest,0,1,"%.3f",ImGuiSliderFlags_AlwaysClamp);
     ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our window open/close state
     static int diffNum = 0;

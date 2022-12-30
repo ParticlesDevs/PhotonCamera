@@ -63,18 +63,16 @@ void initUICamera(struct android_app* app)
     //    return;
     //env2->CallVoidMethod(g_App->activity->clazz, method_id);
     camera.OpenCamera(TEMPLATE_ZERO_SHUTTER_LAG);
-    auto mainSize = camera.MainSize(AIMAGE_FORMAT_RAW16,4.f/3.f);
-    LOGD("Main size: %d %d",mainSize.first,mainSize.second);
-    auto size = camera.PreviewSize(mainSize);
-    LOGD("PreviewSize size: %d %d",size.first,size.second);
-    uiManager.previewAspect = float(mainSize.first)/float(mainSize.second);
-    uiManager.previewResolution = size;
-    uiManager.cameraResolution = mainSize;
+    camera.MainSize(AIMAGE_FORMAT_RAW16,4.f/3.f);
+    LOGD("Selected raw size %d %d",camera.parameters->rawSize.first,camera.parameters->rawSize.second);
+    camera.PreviewSize();
+    LOGD("Selected preview size %d %d",camera.parameters->rawSize.first,camera.parameters->rawSize.second);
+    uiManager.parameters = camera.parameters;
     method_id = env2->GetMethodID(native_activity_clazz, "getSurfaceTexture", "(III)Landroid/view/Surface;");
     if (method_id == nullptr)
         return;
     LOGD("Created Surface");
-    auto surface = env2->CallObjectMethod(g_App->activity->clazz,method_id,camera.texID,size.first,size.second);
+    auto surface = env2->CallObjectMethod(g_App->activity->clazz,method_id,camera.texID,camera.parameters->previewSize.first,camera.parameters->previewSize.second);
     auto window = ANativeWindow_fromSurface(env2, surface);
 
 
@@ -145,7 +143,6 @@ void initUICamera(struct android_app* app)
 
     // Arbitrary scale-up
     ImGui::GetStyle().ScaleAllSizes(uiManager.DPI/100);
-    uiManager.takePicture = &camera.takePicture;
     camera.StartPreview();
     ImGuiStyle& style = ImGui::GetStyle();
     style.ChildRounding = DPI/15.f;

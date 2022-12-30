@@ -13,19 +13,15 @@
 #include <GLES3/gl3.h>
 #include <android/native_window_jni.h>
 #include <utility>
+#include <vector>
+#include "CameraParameters.h"
+
 #define MAXFRAMES 50
+static std::vector<AImage*> buffers;
 class Camera {
 public:
-    std::pair<int, int> previewSize;
-    std::pair<int, int> rawSize;
+    CameraParameters *parameters;
 
-    int buffCnt = 0;
-    int buffAvailable = 50;
-    int requestedBuffers = 0;
-    AImage **buffers;
-
-    bool takePicture = false;
-    float aspect;
 
     GLuint texID;
     int32_t tagsEntries;
@@ -51,9 +47,8 @@ public:
     void OpenCamera(ACameraDevice_request_template templateId);
     void CloseCamera();
     void StartPreview();
-    std::pair<int,int> MainSize(AIMAGE_FORMATS format, float currentAspect = -1.f);
-
-    std::pair<int, int> PreviewSize(std::pair<int, int> mainSize);
+    void MainSize(AIMAGE_FORMATS format, float currentAspect = -1.f);
+    void PreviewSize() const;
 };
 
 

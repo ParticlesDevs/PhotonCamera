@@ -4,7 +4,7 @@
 
 #include "Camera.h"
 #include "main.h"
-
+static CameraParameters* parameters2;
 static void camera_device_on_disconnected(void *context, ACameraDevice *device) {
     LOGI("Camera(id: %s) is diconnected.\n", ACameraDevice_getId(device));
 }
@@ -26,41 +26,52 @@ static void capture_session_on_closed(void *context, ACameraCaptureSession *sess
 }
 static void captureCompleted(void* context, ACameraCaptureSession* session,
                              ACaptureRequest* request, const ACameraMetadata* result){
-    //LOGI("Capture Completed %p\n", session);
-    if(camera.requestedBuffers != 0) {
-        if(camera.buffCnt == 0){
+    if(parameters2->takePicture){
+        LOGI("Capture Started %p\n", session);
+        parameters2->takePicture = false;
+        parameters2->requestedBuffers = parameters2->maxRequest;
+        parameters2->buffCnt = 0;
+    }
+    if(parameters2->requestedBuffers != 0) {
+        if(parameters2->buffCnt == parameters2->requestedBuffers){
 
+            parameters2->requestedBuffers = 0;
         }
-        LOGI("Capture Completed buffer count %d\n", camera.buffCnt);
+
+        LOGI("Capture Completed buffer count %d\n", parameters2->buffCnt);
     }
 }
+
 static void captureSequenceCompleted(void* context, ACameraCaptureSession* session,
                                      int sequenceId, int64_t frameNumber){
-    //LOGI("Capture Completed %p\n", session);
+    LOGI("Capture Sequence Completed %p\n", session);
 
-    for(;camera.buffCnt != camera.requestedBuffers;){
+    for(;parameters2->buffCnt != parameters2->requestedBuffers;){
 
     }
-    camera.buffCnt = 0;
+    parameters2->buffCnt = 0;
 
 }
 static void onImageAvailable(void* context, AImageReader* reader){
     AImage *image = nullptr;
     AImageReader_acquireNextImage(reader,&image);
-    if(camera.buffCnt < MAXFRAMES) {
 
-        //camera.buffers[camera.buffCnt] = image;
-        camera.buffCnt++;
-        LOGI("Camera read image %d\n",camera.buffCnt);
+    if(parameters2->buffCnt < MAXFRAMES) {
 
+        buffers[parameters2->buffCnt] = image;
+        parameters2->buffCnt++;
+        LOGI("Camera read image %d\n",parameters2->buffCnt);
     }
     AImage_delete(image);
 }
 
+
 void Camera::OpenCamera(ACameraDevice_request_template templateId) {
+    parameters = new CameraParameters();
+    parameters2 = parameters;
     ACameraIdList *cameraIdList = nullptr;
-    camera.buffers = static_cast<AImage **>(malloc(sizeof(AImage *) * MAXFRAMES));
-    LOGI("Created camera.buffers %p\n",camera.buffers);
+    LOGI("OpenCamera");
+    buffers = std::vector<AImage*>(MAXFRAMES);
     const char *selectedCameraId = nullptr;
     camera_status_t camera_status = ACAMERA_OK;
     ACameraManager *cameraManager = ACameraManager_create();
@@ -120,7 +131,8 @@ void Camera::OpenCamera(ACameraDevice_request_template templateId) {
 void Camera::CloseCamera()
 {
     camera_status_t camera_status = ACAMERA_OK;
-    delete buffers;
+    buffers.clear();
+    delete parameters;
 
     if (captureRequest != nullptr) {
         ACaptureRequest_free(captureRequest);
@@ -210,9 +222,8 @@ void Camera::StartPreview() {
 
 }
 
-
-std::pair<int, int> Camera::MainSize(AIMAGE_FORMATS format, float currentAspect) {
-    aspect = currentAspect;
+void Camera::MainSize(AIMAGE_FORMATS format, float currentAspect) {
+    parameters->aspect = currentAspect;
     ACameraMetadata_const_entry entry;
     auto ret = ACameraMetadata_getConstEntry(cameraCharacteristics,ACAMERA_SCALER_AVAILABLE_STREAM_CONFIGURATIONS,&entry);
     if(ret != ACAMERA_OK) {
@@ -254,13 +265,13 @@ std::pair<int, int> Camera::MainSize(AIMAGE_FORMATS format, float currentAspect)
         listener.onImageAvailable = onImageAvailable;
         AImageReader_setImageListener(inputFrames, &listener);
     }
-    rawSize = {width, height};
-    return rawSize;
+    LOGD("Selected raw size %d %d",width,height);
+    parameters->rawSize = {width, height};
 }
-std::pair<int, int> Camera::PreviewSize(std::pair<int, int> mainSize) {
+void Camera::PreviewSize() const {
     ACameraMetadata_const_entry entry;
     ACameraMetadata_getConstEntry(cameraCharacteristics,ACAMERA_SCALER_AVAILABLE_STREAM_CONFIGURATIONS,&entry);
-    float k = float(mainSize.first)/float(mainSize.second);
+    float k = float(parameters->rawSize.first)/float(parameters->rawSize.second);
     int height = 0;
     int width = 0;
     for(int i =0; i<entry.count;i+=4){
@@ -274,7 +285,6 @@ std::pair<int, int> Camera::PreviewSize(std::pair<int, int> mainSize) {
             }
         }
     }
-    previewSize = {width, height};
-    return previewSize;
+    parameters->previewSize = {width,height};
 }
 
