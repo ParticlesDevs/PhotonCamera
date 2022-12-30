@@ -62,8 +62,8 @@ void initUICamera(struct android_app* app)
     //if (method_id == NULL)
     //    return;
     //env2->CallVoidMethod(g_App->activity->clazz, method_id);
-    camera.OpenCamera(TEMPLATE_PREVIEW);
-    auto mainSize = camera.MainSize(AIMAGE_FORMAT_YUV_420_888,16.f/9.f);
+    camera.OpenCamera(TEMPLATE_ZERO_SHUTTER_LAG);
+    auto mainSize = camera.MainSize(AIMAGE_FORMAT_RAW16,4.f/3.f);
     LOGD("Main size: %d %d",mainSize.first,mainSize.second);
     auto size = camera.PreviewSize(mainSize);
     LOGD("PreviewSize size: %d %d",size.first,size.second);

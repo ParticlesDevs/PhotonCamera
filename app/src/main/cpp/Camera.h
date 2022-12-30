@@ -20,7 +20,7 @@ public:
     std::pair<int, int> rawSize;
 
     int buffCnt = 0;
-    int buffAvailable = 0;
+    int buffAvailable = 50;
     int requestedBuffers = 0;
     AImage **buffers;
 
@@ -33,10 +33,14 @@ public:
     ACameraMetadata *cameraCharacteristics;
 
     ANativeWindow *theNativeWindow;
+    ANativeWindow *readerNativeWindow;
     ACameraDevice *cameraDevice;
     ACaptureRequest *captureRequest;
     ACameraOutputTarget *cameraOutputTarget;
+    ACameraOutputTarget *OutputTarget;
     ACaptureSessionOutput *sessionOutput;
+    ACaptureSessionOutput *readerOutput;
+
     ACaptureSessionOutputContainer *captureSessionOutputContainer;
     ACameraCaptureSession *captureSession;
     AImageReader *inputFrames;

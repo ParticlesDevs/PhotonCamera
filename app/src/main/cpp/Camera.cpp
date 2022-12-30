@@ -27,6 +27,12 @@ static void capture_session_on_closed(void *context, ACameraCaptureSession *sess
 static void captureCompleted(void* context, ACameraCaptureSession* session,
                              ACaptureRequest* request, const ACameraMetadata* result){
     //LOGI("Capture Completed %p\n", session);
+    if(camera.requestedBuffers != 0) {
+        if(camera.buffCnt == 0){
+
+        }
+        LOGI("Capture Completed buffer count %d\n", camera.buffCnt);
+    }
 }
 static void captureSequenceCompleted(void* context, ACameraCaptureSession* session,
                                      int sequenceId, int64_t frameNumber){
@@ -41,13 +47,20 @@ static void captureSequenceCompleted(void* context, ACameraCaptureSession* sessi
 static void onImageAvailable(void* context, AImageReader* reader){
     AImage *image = nullptr;
     AImageReader_acquireNextImage(reader,&image);
-    camera.buffers[camera.buffCnt] = image;
-    camera.buffCnt++;
+    if(camera.buffCnt < MAXFRAMES) {
+
+        //camera.buffers[camera.buffCnt] = image;
+        camera.buffCnt++;
+        LOGI("Camera read image %d\n",camera.buffCnt);
+
+    }
+    AImage_delete(image);
 }
 
 void Camera::OpenCamera(ACameraDevice_request_template templateId) {
     ACameraIdList *cameraIdList = nullptr;
-    buffers = static_cast<AImage **>(malloc(sizeof(AImage *) * MAXFRAMES));
+    camera.buffers = static_cast<AImage **>(malloc(sizeof(AImage *) * MAXFRAMES));
+    LOGI("Created camera.buffers %p\n",camera.buffers);
     const char *selectedCameraId = nullptr;
     camera_status_t camera_status = ACAMERA_OK;
     ACameraManager *cameraManager = ACameraManager_create();
@@ -150,19 +163,40 @@ void Camera::StartPreview() {
 
     //LOGI("Surface is prepared in %p.\n", surface);
 
-    camera_status = ACameraOutputTarget_create(theNativeWindow, &cameraOutputTarget);
-    if (camera_status != ACAMERA_OK) {
-        LOGE("Failed to close CameraDevice.\n");
+    {
+        media_status_t status = AImageReader_getWindow(inputFrames, &readerNativeWindow);
+        if (status != AMEDIA_OK) {
+            LOGE("Failed to get inputWindow.\n");
+        }
+        ANativeWindow_acquire(readerNativeWindow);
+        camera_status = ACameraOutputTarget_create(readerNativeWindow, &OutputTarget);
+        if (camera_status != ACAMERA_OK) {
+            LOGE("Failed to create Target Burst.\n");
+        }
+        camera_status = ACaptureSessionOutput_create(readerNativeWindow, &readerOutput);
+        if (camera_status != ACAMERA_OK) {
+            LOGE("Failed to create CaptureSession.\n");
+        }
+        camera_status = ACaptureSessionOutputContainer_add(captureSessionOutputContainer,
+                                                           readerOutput);
+        if (camera_status != ACAMERA_OK) {
+            LOGE("Failed to add readerOutput.\n");
+        }
+        ACaptureRequest_addTarget(captureRequest, OutputTarget);
     }
+    {
+        camera_status = ACameraOutputTarget_create(theNativeWindow, &cameraOutputTarget);
+        if (camera_status != ACAMERA_OK) {
+            LOGE("Failed to create Target preview.\n");
+        }
+        ACaptureSessionOutput_create(theNativeWindow, &sessionOutput);
+        ACaptureSessionOutputContainer_add(captureSessionOutputContainer, sessionOutput);
+        ACaptureRequest_addTarget(captureRequest, cameraOutputTarget);
+    }
+
     uint8_t mode = ACAMERA_CONTROL_VIDEO_STABILIZATION_MODE_ON;
     ACaptureRequest_setEntry_u8(captureRequest, ACAMERA_CONTROL_VIDEO_STABILIZATION_MODE, 1,
                                 &mode);
-    ACaptureRequest_addTarget(captureRequest, cameraOutputTarget);
-
-    ACaptureSessionOutput_create(theNativeWindow, &sessionOutput);
-
-
-    ACaptureSessionOutputContainer_add(captureSessionOutputContainer, sessionOutput);
 
     ACameraDevice_createCaptureSession(cameraDevice, captureSessionOutputContainer,
                                        &captureSessionStateCallbacks, &captureSession);
@@ -213,6 +247,7 @@ std::pair<int, int> Camera::MainSize(AIMAGE_FORMATS format, float currentAspect)
         AImageReader_delete(inputFrames);
     }
     AImageReader_new(width,height,format,MAXFRAMES,&inputFrames);
+
     if(format != AIMAGE_FORMAT_YUV_420_888){
         AImageReader_ImageListener listener;
         listener.context = inputFrames;

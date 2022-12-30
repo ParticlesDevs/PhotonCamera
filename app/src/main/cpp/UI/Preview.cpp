@@ -42,8 +42,9 @@ void Preview(UiManager* manager){
         }
         ImGui::EndChild();
     }
+    ImGui::SetCursorPos(cursor+ImVec2{0,bsize2.y});
     ImGui::PopFont();
-    if (ImGui::BeginChild("##0")){
+    if (ImGui::BeginChild("##1")){
         auto col = ImVec4{0,1,0,1};
         ImGui::TextColored(col,"%.2f FPS", ImGui::GetIO().Framerate);
         ImGui::TextColored(col,"Resolutions");
@@ -53,7 +54,7 @@ void Preview(UiManager* manager){
     ImGui::EndChild();
 
     ImGui::SetCursorPos(cursor+ImVec2{0,edisp.y - bsize.y*2});
-    if (ImGui::BeginChild("##1")){
+    if (ImGui::BeginChild("##2")){
         auto shiftY = bsize.y;
         ImGui::SetCursorPos(ImVec2{edisp.x*0.2f-bsize.x/2,shiftY - bsize.y/2});
         ImGui::PushFont(io.Fonts->Fonts[2]);
