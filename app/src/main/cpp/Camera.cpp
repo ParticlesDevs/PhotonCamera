@@ -27,14 +27,19 @@ static void capture_session_on_closed(void *context, ACameraCaptureSession *sess
 static void captureCompleted(void* context, ACameraCaptureSession* session,
                              ACaptureRequest* request, const ACameraMetadata* result){
     if(parameters2->takePicture){
+        if(parameters2->requestedBuffers == 0){
         LOGI("Capture Started %p\n", session);
         parameters2->takePicture = false;
         parameters2->requestedBuffers = parameters2->maxRequest;
         parameters2->buffCnt = 0;
+        } else {
+            parameters2->takePicture = false;
+        }
     }
-    if(parameters2->requestedBuffers != 0) {
-        if(parameters2->buffCnt == parameters2->requestedBuffers){
 
+    if(parameters2->requestedBuffers != 0) {
+        if(parameters2->buffCnt >= parameters2->requestedBuffers){
+            LOGI("Capture Burst %d Completed\n", parameters2->requestedBuffers);
             parameters2->requestedBuffers = 0;
         }
 
@@ -45,24 +50,20 @@ static void captureCompleted(void* context, ACameraCaptureSession* session,
 static void captureSequenceCompleted(void* context, ACameraCaptureSession* session,
                                      int sequenceId, int64_t frameNumber){
     LOGI("Capture Sequence Completed %p\n", session);
-
-    for(;parameters2->buffCnt != parameters2->requestedBuffers;){
-
-    }
-    parameters2->buffCnt = 0;
-
 }
 static void onImageAvailable(void* context, AImageReader* reader){
     AImage *image = nullptr;
     AImageReader_acquireNextImage(reader,&image);
 
-    if(parameters2->buffCnt < MAXFRAMES) {
+    if(parameters2->buffCnt < parameters2->requestedBuffers) {
 
         buffers[parameters2->buffCnt] = image;
         parameters2->buffCnt++;
         LOGI("Camera read image %d\n",parameters2->buffCnt);
+        AImage_delete(image);
+    } else {
+        AImage_delete(image);
     }
-    AImage_delete(image);
 }
 
 

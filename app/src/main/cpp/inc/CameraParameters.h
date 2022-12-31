@@ -10,7 +10,7 @@ struct CameraParameters{
     std::pair<int, int> rawSize;
     bool takePicture = false;
     float aspect = 1.f;
-    int buffCnt = 50;
+    int buffCnt = 0;
     int buffAvailable = 50;
     int requestedBuffers = 0;
     int maxRequest = 50;

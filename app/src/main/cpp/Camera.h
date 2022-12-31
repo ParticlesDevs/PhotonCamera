@@ -16,7 +16,7 @@
 #include <vector>
 #include "CameraParameters.h"
 
-#define MAXFRAMES 50
+#define MAXFRAMES 51
 static std::vector<AImage*> buffers;
 class Camera {
 public:
