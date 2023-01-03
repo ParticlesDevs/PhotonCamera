@@ -2,15 +2,15 @@
 // Created by eszdman on 27.10.2022.
 //
 
-#include "Camera.h"
+#include "CameraNDK.h"
 #include "main.h"
-static CameraParameters* parameters2;
+static class CameraNDK* cam;
 static void camera_device_on_disconnected(void *context, ACameraDevice *device) {
-    LOGI("Camera(id: %s) is diconnected.\n", ACameraDevice_getId(device));
+    LOGI("CameraNDK(id: %s) is diconnected.\n", ACameraDevice_getId(device));
 }
 
 static void camera_device_on_error(void *context, ACameraDevice *device, int error) {
-    LOGE("Error(code: %d) on Camera(id: %s).\n", error, ACameraDevice_getId(device));
+    LOGE("Error(code: %d) on CameraNDK(id: %s).\n", error, ACameraDevice_getId(device));
 }
 
 static void capture_session_on_ready(void *context, ACameraCaptureSession *session) {
@@ -26,24 +26,30 @@ static void capture_session_on_closed(void *context, ACameraCaptureSession *sess
 }
 static void captureCompleted(void* context, ACameraCaptureSession* session,
                              ACaptureRequest* request, const ACameraMetadata* result){
-    if(parameters2->takePicture){
-        if(parameters2->requestedBuffers == 0){
+    if(cam->parameters->takePicture){
+        if(cam->parameters->requestedBuffers == 0){
         LOGI("Capture Started %p\n", session);
-        parameters2->takePicture = false;
-        parameters2->requestedBuffers = parameters2->maxRequest;
-        parameters2->buffCnt = 0;
+        cam->parameters->takePicture = false;
+        cam->parameters->requestedBuffers = cam->parameters->maxRequest;
+        cam->parameters->buffCnt = 0;
+        ACaptureRequest_addTarget(cam->captureRequest, cam->OutputTarget);
+        ACameraCaptureSession_setRepeatingRequest(cam->captureSession, &cam->captureSessionCaptureCallbacks, 1,
+                                                  &cam->captureRequest, nullptr);
         } else {
-            parameters2->takePicture = false;
+            cam->parameters->takePicture = false;
         }
     }
 
-    if(parameters2->requestedBuffers != 0) {
-        if(parameters2->buffCnt >= parameters2->requestedBuffers){
-            LOGI("Capture Burst %d Completed\n", parameters2->requestedBuffers);
-            parameters2->requestedBuffers = 0;
+    if(cam->parameters->requestedBuffers != 0) {
+        if(cam->parameters->buffCnt >= cam->parameters->requestedBuffers){
+            LOGI("Capture Burst %d Completed\n", cam->parameters->requestedBuffers);
+            cam->parameters->requestedBuffers = 0;
+            ACaptureRequest_removeTarget(cam->captureRequest, cam->OutputTarget);
+            ACameraCaptureSession_setRepeatingRequest(cam->captureSession, &cam->captureSessionCaptureCallbacks, 1,
+                                                      &cam->captureRequest, nullptr);
         }
 
-        LOGI("Capture Completed buffer count %d\n", parameters2->buffCnt);
+        LOGI("Capture Completed buffer count %d\n", cam->parameters->buffCnt);
     }
 }
 
@@ -55,25 +61,70 @@ static void onImageAvailable(void* context, AImageReader* reader){
     AImage *image = nullptr;
     AImageReader_acquireNextImage(reader,&image);
 
-    if(parameters2->buffCnt < parameters2->requestedBuffers) {
+    if(cam->parameters->buffCnt < cam->parameters->requestedBuffers) {
 
-        buffers[parameters2->buffCnt] = image;
-        parameters2->buffCnt++;
-        LOGI("Camera read image %d\n",parameters2->buffCnt);
+        buffers[cam->parameters->buffCnt] = image;
+        cam->parameters->buffCnt++;
+        LOGI("CameraNDK read image %d\n",cam->parameters->buffCnt);
         AImage_delete(image);
     } else {
         AImage_delete(image);
     }
 }
 
+void CameraNDK::Reset(){
+    if (captureRequest != nullptr) {
+        ACaptureRequest_free(captureRequest);
+        captureRequest = nullptr;
+    }
+    auto camera_status = ACameraDevice_createCaptureRequest(cameraDevice,templateID,
+                                                       &captureRequest);
+    if (camera_status != ACAMERA_OK) {
+        LOGE("Failed to create preview capture request (id: %s)\n", parameters->id);
+    }
 
-void Camera::OpenCamera(ACameraDevice_request_template templateId) {
+    if (cameraOutputTarget != nullptr) {
+        ACameraOutputTarget_free(cameraOutputTarget);
+        cameraOutputTarget = nullptr;
+    }
+    if (sessionOutput != nullptr) {
+        ACaptureSessionOutput_free(sessionOutput);
+        sessionOutput = nullptr;
+    }
+    if (inputFrames != nullptr) {
+        AImageReader_delete(inputFrames);
+        inputFrames = nullptr;
+    }
+    if (captureSessionOutputContainer != nullptr) {
+        ACaptureSessionOutputContainer_free(captureSessionOutputContainer);
+        captureSessionOutputContainer = nullptr;
+    }
+    ACaptureSessionOutputContainer_create(&captureSessionOutputContainer);
+    cam->parameters->rawSize = cam->parameters->rawSizes[cam->parameters->selectedRaw];
+    cam->parameters->previewSize = cam->parameters->previewSizes[cam->parameters->selectedPreview];
+    cam->parameters->aspect = float(cam->parameters->previewSize.first)/float(cam->parameters->previewSize.second);
+    AImageReader_new(cam->parameters->rawSize.first,
+                     cam->parameters->rawSize.second,cam->parameters->rawFormat,MAXFRAMES,&inputFrames);
+    AImageReader_ImageListener listener;
+    listener.context = inputFrames;
+    listener.onImageAvailable = onImageAvailable;
+    AImageReader_setImageListener(inputFrames, &listener);
+
+}
+
+void CameraNDK::OpenCamera(ACameraDevice_request_template templateId,AIMAGE_FORMATS format, float currentAspect) {
+    cam = this;
+    templateID = templateId;
+    auto tmp = parameters;
+
     parameters = new CameraParameters();
-    parameters2 = parameters;
+    if(tmp != nullptr){
+        parameters->aspect = tmp->aspect;
+        delete tmp;
+    }
     ACameraIdList *cameraIdList = nullptr;
     LOGI("OpenCamera");
     buffers = std::vector<AImage*>(MAXFRAMES);
-    const char *selectedCameraId = nullptr;
     camera_status_t camera_status = ACAMERA_OK;
     ACameraManager *cameraManager = ACameraManager_create();
 
@@ -88,36 +139,27 @@ void Camera::OpenCamera(ACameraDevice_request_template templateId) {
         return;
     }
 
-    selectedCameraId = cameraIdList->cameraIds[0];
+    parameters->id = cameraIdList->cameraIds[0];
 
-    LOGI("Trying to open Camera2 (id: %s, num of camera : %d)\n", selectedCameraId,
+    LOGI("Trying to open Camera2 (id: %s, num of camera : %d)\n", parameters->id,
          cameraIdList->numCameras);
 
-    camera_status = ACameraManager_getCameraCharacteristics(cameraManager, selectedCameraId,
+    camera_status = ACameraManager_getCameraCharacteristics(cameraManager, parameters->id,
                                                             &cameraCharacteristics);
-    ACameraMetadata_getAllTags(cameraCharacteristics, &tagsEntries,&tags);
+    //ACameraMetadata_getAllTags(cameraCharacteristics, &tagsEntries,&tags);
     if (camera_status != ACAMERA_OK) {
-        LOGE("Failed to get camera meta data of ID:%s\n", selectedCameraId);
+        LOGE("Failed to get camera meta data of ID:%s\n", parameters->id);
     }
 
     deviceStateCallbacks.onDisconnected = camera_device_on_disconnected;
     deviceStateCallbacks.onError = camera_device_on_error;
 
-    camera_status = ACameraManager_openCamera(cameraManager, selectedCameraId,
+    camera_status = ACameraManager_openCamera(cameraManager, parameters->id,
                                               &deviceStateCallbacks, &cameraDevice);
 
     if (camera_status != ACAMERA_OK) {
-        LOGE("Failed to open camera device (id: %s)\n", selectedCameraId);
+        LOGE("Failed to open camera device (id: %s)\n", parameters->id);
     }
-
-    camera_status = ACameraDevice_createCaptureRequest(cameraDevice, templateId,
-                                                       &captureRequest);
-
-    if (camera_status != ACAMERA_OK) {
-        LOGE("Failed to create preview capture request (id: %s)\n", selectedCameraId);
-    }
-
-    ACaptureSessionOutputContainer_create(&captureSessionOutputContainer);
 
     captureSessionStateCallbacks.onReady = capture_session_on_ready;
     captureSessionStateCallbacks.onActive = capture_session_on_active;
@@ -126,14 +168,19 @@ void Camera::OpenCamera(ACameraDevice_request_template templateId) {
     //ACameraMetadata_free(cameraCharacteristics);
     ACameraManager_deleteCameraIdList(cameraIdList);
     ACameraManager_delete(cameraManager);
+    MainSize(format,currentAspect);
+    LOGD("Selected raw size %d %d",parameters->rawSize.first,parameters->rawSize.second);
+    PreviewSize();
+    LOGD("Selected preview size %d %d",parameters->previewSize.first,parameters->previewSize.second);
+    Reset();
 }
 
 
-void Camera::CloseCamera()
+void CameraNDK::CloseCamera()
 {
+    ACameraCaptureSession_close(cam->captureSession);
     camera_status_t camera_status = ACAMERA_OK;
     buffers.clear();
-    delete parameters;
 
     if (captureRequest != nullptr) {
         ACaptureRequest_free(captureRequest);
@@ -168,10 +215,10 @@ void Camera::CloseCamera()
         captureSessionOutputContainer = nullptr;
     }
 
-    LOGI("Close Camera\n");
+    LOGI("Close CameraNDK\n");
 }
 
-void Camera::StartPreview() {
+void CameraNDK::StartPreview() {
     camera_status_t camera_status = ACAMERA_OK;
 
     //LOGI("Surface is prepared in %p.\n", surface);
@@ -195,7 +242,7 @@ void Camera::StartPreview() {
         if (camera_status != ACAMERA_OK) {
             LOGE("Failed to add readerOutput.\n");
         }
-        ACaptureRequest_addTarget(captureRequest, OutputTarget);
+        //ACaptureRequest_addTarget(captureRequest, OutputTarget);
     }
     {
         camera_status = ACameraOutputTarget_create(theNativeWindow, &cameraOutputTarget);
@@ -223,7 +270,7 @@ void Camera::StartPreview() {
 
 }
 
-void Camera::MainSize(AIMAGE_FORMATS format, float currentAspect) {
+void CameraNDK::MainSize(AIMAGE_FORMATS format, float currentAspect) const {
     parameters->aspect = currentAspect;
     ACameraMetadata_const_entry entry;
     auto ret = ACameraMetadata_getConstEntry(cameraCharacteristics,ACAMERA_SCALER_AVAILABLE_STREAM_CONFIGURATIONS,&entry);
@@ -235,55 +282,66 @@ void Camera::MainSize(AIMAGE_FORMATS format, float currentAspect) {
     int width = 0;
     LOGD("Size, Type: %d %d",entry.count,entry.type);
     bool found = false;
+    auto cnt = 0;
+    cam->parameters->rawFormat = format;
     for(int i=0; i<int(entry.count);i+=4){
         if(entry.data.i32[i] == format){
             LOGD("Format, Width, Height: %d %d %d",entry.data.i32[i],entry.data.i32[i+1],entry.data.i32[i+2]);
             auto nw = entry.data.i32[i+1];
             auto nh = entry.data.i32[i+2];
+            string build = (std::to_string(nw)+ "X" + std::to_string(nh)+" Raw");
+            parameters->rawNames.push_back(build);
+            parameters->rawSizes.emplace_back(nw,nh);
             if(currentAspect == 0.f) {
                 if (height * width < nw * nh && !(found && (nw * nh > 5000 * 5000))) {
                     height = nh;
                     width = nw;
+                    parameters->selectedRaw = cnt;
                     found = true;
                 }
             } else {
                 if (abs(float(nw)/float(nh) - currentAspect) < 0.05f && height * width < nw * nh && !(found && (nw * nh > 5000 * 5000))) {
                     height = nh;
                     width = nw;
+                    parameters->selectedRaw = cnt;
                     found = true;
                 }
             }
+            cnt++;
         }
     }
-    if(inputFrames != nullptr){
-        AImageReader_delete(inputFrames);
-    }
-    AImageReader_new(width,height,format,MAXFRAMES,&inputFrames);
-
-    if(format != AIMAGE_FORMAT_YUV_420_888){
-        AImageReader_ImageListener listener;
-        listener.context = inputFrames;
-        listener.onImageAvailable = onImageAvailable;
-        AImageReader_setImageListener(inputFrames, &listener);
-    }
+     /*if(inputFrames != nullptr){
+         AImageReader_delete(inputFrames);
+     }
+     AImageReader_new(width,height,format,MAXFRAMES,&inputFrames);
+     AImageReader_ImageListener listener;
+     listener.context = inputFrames;
+     listener.onImageAvailable = onImageAvailable;
+     AImageReader_setImageListener(inputFrames, &listener);*/
     LOGD("Selected raw size %d %d",width,height);
-    parameters->rawSize = {width, height};
+    parameters->rawSize = parameters->rawSizes[parameters->selectedRaw];
 }
-void Camera::PreviewSize() const {
+void CameraNDK::PreviewSize() const {
     ACameraMetadata_const_entry entry;
     ACameraMetadata_getConstEntry(cameraCharacteristics,ACAMERA_SCALER_AVAILABLE_STREAM_CONFIGURATIONS,&entry);
-    float k = float(parameters->rawSize.first)/float(parameters->rawSize.second);
+    float k = parameters->aspect;
     int height = 0;
     int width = 0;
+    auto cnt = 0;
     for(int i =0; i<entry.count;i+=4){
         if(entry.data.i32[i] == AIMAGE_FORMAT_YUV_420_888){
             LOGD("Format, Width, Height: %d %d %d",entry.data.i32[i],entry.data.i32[i+1],entry.data.i32[i+2]);
             auto nw = entry.data.i32[i+1];
             auto nh = entry.data.i32[i+2];
+            string build = (std::to_string(nw)+ "X" + std::to_string(nh)+" Preview");
+            parameters->previewNames.push_back(build);
+            parameters->previewSizes.emplace_back(nw,nh);
             if(nw*nh > height * width && nw * nh < 2000 * 2000 && abs(float(nw) / float(nh) - k) < 0.05f){
                 height = nh;
                 width = nw;
+                parameters->selectedPreview = cnt;
             }
+            cnt++;
         }
     }
     parameters->previewSize = {width,height};

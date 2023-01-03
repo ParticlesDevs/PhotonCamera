@@ -15,7 +15,7 @@
 #include "logs.h"
 
 #define EXTERNAL_DIR "//sdcard//"
-#define DCIM_CAMERA "//DCIM//Camera//"
+#define DCIM_CAMERA "//DCIM//CameraNDK//"
 #define PHOTON_TUNING_DIR //DCIM//PhotonCamera//Tuning//
 
 std::vector<std::string> getAllImageFiles();

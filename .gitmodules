@@ -7,3 +7,6 @@
 [submodule "app/src/main/cpp/deps/GLCompute"]
 	path = app/src/main/cpp/deps/GLCompute
 	url = https://github.com/ParticlesDevs/GLCompute
+[submodule "/home/eszdman/StudioProjects/PhotonCameraN/app/src/main/cpp/deps/tinydng"]
+	path = /home/eszdman/StudioProjects/PhotonCameraN/app/src/main/cpp/deps/tinydng
+	url = https://github.com/syoyo/tinydng

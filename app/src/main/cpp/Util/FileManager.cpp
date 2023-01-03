@@ -20,7 +20,7 @@ std::vector<std::string> getAllImageFiles(){
         //std::cout << entry.path() << std::endl;
         LOGD(" file: %s",entry.path().c_str());
     }
-    return std::vector<std::string>();
+    return {};
 }
 void CreateDirs(){
     int    result;

@@ -1,0 +1,9 @@
+//
+// Created by eszdman on 02.01.2023.
+//
+
+#ifndef PHOTONCAMERA_CAMERA2API_H
+#define PHOTONCAMERA_CAMERA2API_H
+
+
+#endif //PHOTONCAMERA_CAMERA2API_H

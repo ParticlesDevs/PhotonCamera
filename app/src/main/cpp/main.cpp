@@ -10,6 +10,37 @@ int32_t getDensityDpi(android_app* app) {
     AConfiguration_delete(config);
     return density;
 }
+void setNDKPreview(){
+    jclass native_activity_clazz = env2->GetObjectClass(g_App->activity->clazz);
+    if (native_activity_clazz == nullptr)
+        return;
+    auto method_id = env2->GetMethodID(native_activity_clazz, "getSurfaceTexture", "(III)Landroid/view/Surface;");
+    if (method_id == nullptr)
+        return;
+    LOGD("Created Surface");
+    auto surface = env2->CallObjectMethod(g_App->activity->clazz,method_id,camera.parameters->cameraPreviewID,camera.parameters->previewSize.first,camera.parameters->previewSize.second);
+    if(camera.theNativeWindow != nullptr){
+        ANativeWindow_release(camera.theNativeWindow);
+    }
+    auto window = ANativeWindow_fromSurface(env2, surface);
+    ANativeWindow_acquire(window);
+    camera.theNativeWindow = window;
+}
+void CameraNDKInit(){
+    camera.OpenCamera(TEMPLATE_ZERO_SHUTTER_LAG,AIMAGE_FORMAT_RAW16,4.f/3.f);
+    glGenTextures(1,&camera.parameters->cameraPreviewID);
+    glBindTexture(GL_TEXTURE_EXTERNAL_OES, camera.parameters->cameraPreviewID);
+
+    uiManager.parameters = camera.parameters;
+    setNDKPreview();
+}
+void CameraNDKReInit(){
+    camera.Reset();
+    LOGD("Selected preview size %d %d",camera.parameters->rawSize.first,camera.parameters->rawSize.second);
+    uiManager.parameters = camera.parameters;
+    setNDKPreview();
+    camera.StartPreview();
+}
 void initUICamera(struct android_app* app)
 {
     LOGD("Init");
@@ -40,7 +71,7 @@ void initUICamera(struct android_app* app)
     ImGui_ImplOpenGL3_Init("#version 300 es",fragment);
 
     JavaVM* java_vm = g_App->activity->vm;
-    getAllImageFiles();
+    //getAllImageFiles(); //Causing crush on some devices
 
     jint jni_return = java_vm->AttachCurrentThread(&env2, nullptr);
     if (jni_return != JNI_OK)
@@ -55,31 +86,7 @@ void initUICamera(struct android_app* app)
         return;
     jobject buf = env2->CallObjectMethod(g_App->activity->clazz, method_id);
     unicodeBuffer = (int*)env2->GetDirectBufferAddress(buf);
-    glGenTextures(1,&camera.texID);
-    glBindTexture(GL_TEXTURE_EXTERNAL_OES, camera.texID);
-    uiManager.previewTexture = camera.texID;
-    //method_id = env2->GetMethodID(native_activity_clazz, "requestPermissions", "()V");
-    //if (method_id == NULL)
-    //    return;
-    //env2->CallVoidMethod(g_App->activity->clazz, method_id);
-    camera.OpenCamera(TEMPLATE_ZERO_SHUTTER_LAG);
-    camera.MainSize(AIMAGE_FORMAT_RAW16,4.f/3.f);
-    LOGD("Selected raw size %d %d",camera.parameters->rawSize.first,camera.parameters->rawSize.second);
-    camera.PreviewSize();
-    LOGD("Selected preview size %d %d",camera.parameters->rawSize.first,camera.parameters->rawSize.second);
-    uiManager.parameters = camera.parameters;
-    method_id = env2->GetMethodID(native_activity_clazz, "getSurfaceTexture", "(III)Landroid/view/Surface;");
-    if (method_id == nullptr)
-        return;
-    LOGD("Created Surface");
-    auto surface = env2->CallObjectMethod(g_App->activity->clazz,method_id,camera.texID,camera.parameters->previewSize.first,camera.parameters->previewSize.second);
-    auto window = ANativeWindow_fromSurface(env2, surface);
-
-
-    ANativeWindow_acquire(window);
-    //ANativeWindow_setBuffersGeometry(window,1920,1080,egl_format);
-    //LOGD("Width: %d",ANativeWindow_getWidth(window));
-    camera.theNativeWindow = window;
+    CameraNDKInit();
 
     // Load Fonts
     // - If no fonts are loaded, dear imgui will use the default font. You can also load multiple fonts and use ImGui::PushFont()/PopFont() to select them.
@@ -170,8 +177,8 @@ void tick()
     if (previewEgl->g_EglDisplay == EGL_NO_DISPLAY)
         return;
     //static ImVec4 clear_color = ImVec4(106.f/255.f, 72.f/255.f, 201.f/255.f, 1.00f);
-    //static ImVec4 clear_color = ImVec4(0.35f, 0.35f, 0.35f, 1.f);
-    static ImVec4 clear_color = ImVec4(0.f, 0.f, 0.f, 1.f);
+    static ImVec4 clear_color = ImVec4(0.35f, 0.35f, 0.35f, 1.f);
+    //static ImVec4 clear_color = ImVec4(0.f, 0.f, 0.f, 1.f);
 
     // Poll Unicode characters via native way
     // Fixed removed JNI overhead
@@ -203,6 +210,10 @@ void tick()
         env2->CallVoidMethod(g_App->activity->clazz, method_id);
         uiManager.handler.updatePreview = false;
     }
+    if(camera.parameters->resetResCamera){
+        camera.parameters->resetResCamera = false;
+        CameraNDKReInit();
+    }
 }
 
 void shutdownUICamera()
@@ -214,6 +225,9 @@ void shutdownUICamera()
     camera.CloseCamera();
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplAndroid_Shutdown();
+    ImGui::GetIO().Fonts->Locked = false;
+    ImGui::GetIO().Fonts = nullptr;
+
     ImGui::DestroyContext();
 
     previewEgl->~EglPlate();

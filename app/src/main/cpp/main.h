@@ -10,7 +10,7 @@
 #include "imgui_impl_opengl3_android.h"
 #include "FileManager.h"
 #include "UiManager.h"
-#include "Camera.h"
+#include "CameraNDK.h"
 #include <android/log.h>
 #include <android_native_app_glue.h>
 #include <android/asset_manager.h>
@@ -40,6 +40,6 @@ static int ShowSoftKeyboardInput();
 static int PollUnicodeChars();
 int GetAssetData(const char* filename, void** out_data);
 static UiManager uiManager;
-static Camera camera;
+static class CameraNDK camera;
 
 #endif //PHOTONCAMERA_MAIN_H

@@ -499,7 +499,7 @@ typedef enum {
 #define TIFFTAG_CHROMABLURRADIUS	50737	/* &chroma blur radius */
 #define TIFFTAG_ANTIALIASSTRENGTH	50738	/* &relative strength of the
 						   camera's anti-alias filter */
-#define TIFFTAG_SHADOWSCALE		50739	/* &used by Adobe Camera Raw */
+#define TIFFTAG_SHADOWSCALE		50739	/* &used by Adobe CameraNDK Raw */
 #define TIFFTAG_DNGPRIVATEDATA		50740	/* &manufacturer's private data */
 #define TIFFTAG_MAKERNOTESAFETY		50741	/* &whether the EXIF MakerNote
 						   tag is safe to preserve

@@ -12,7 +12,7 @@ add_library(${CMAKE_PROJECT_NAME} SHARED
         ${SRC_DIR}/Util/FileManager.cpp
         ${SRC_DIR}/Util/Widgets.cpp
         ${SRC_DIR}/main.cpp
-        ${SRC_DIR}/Camera.cpp
+        ${SRC_DIR}/CameraNDK.cpp
         ${SRC_DIR}/deps/imgui/imgui.cpp
         ${SRC_DIR}/deps/imgui/imgui_demo.cpp
         ${SRC_DIR}/deps/imgui/imgui_draw.cpp
@@ -42,6 +42,7 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
         ${SRC_DIR}/deps/imgui
         ${SRC_DIR}/impl
         ${SRC_DIR}/inc
+        ${SRC_DIR}/deps/tinydng
         ${SRC_DIR}
         ${ANDROID_NDK}/sources/android/native_app_glue
         )
