@@ -47,6 +47,8 @@ public:
     void PreviewSize() const;
 
     void Reset();
+
+    void Restart();
 };
 
 

@@ -5,6 +5,7 @@
 #include "Settings.h"
 #include "Widgets.h"
 #include "IconsMaterialDesign.h"
+#include "logs.h"
 #include <cstdlib>
 #include <string>
 void Settings(UiManager* manager){
@@ -23,34 +24,39 @@ void Settings(UiManager* manager){
         manager->currentLayout = MAIN;
     }
     ImGui::PopFont();
-    auto currentMain = manager->parameters->rawNames[manager->parameters->selectedRaw].c_str();
-    if(ImGui::BeginCombo("##MainSize",currentMain)) {
-        for(int i =0; i<manager->parameters->rawSizes.size(); i++){
-            auto item = manager->parameters->rawNames[i].c_str();
-            bool is_selected = (manager->parameters->selectedRaw == i); // You can store your selection however you want, outside or inside your objects
-            if (ImGui::Selectable(item, is_selected)){
-                manager->parameters->selectedRaw = i;
-                manager->parameters->resetResCamera = true;
+    BeginGroupPanel(TextFmt("Camera: %s Settings ",manager->parameters->cameraIDs[manager->parameters->selectedID].c_str()),ImVec2{-1,0});
+    {
+        auto currentMain = manager->parameters->currentSensor->rawNames[manager->parameters->selectedRaw].c_str();
+        if(ImGui::BeginCombo("##MainSize",currentMain)) {
+            for(int i =0; i<manager->parameters->currentSensor->rawSizes.size(); i++){
+                auto item = manager->parameters->currentSensor->rawNames[i].c_str();
+                bool is_selected = (manager->parameters->selectedRaw == i); // You can store your selection however you want, outside or inside your objects
+                if (ImGui::Selectable(item, is_selected)){
+                    manager->parameters->selectedRaw = i;
+                    manager->parameters->resetResCamera = true;
+                }
+                if (is_selected)
+                    ImGui::SetItemDefaultFocus();   // You may set the initial focus when opening the combo (scrolling + for keyboard navigation support)
             }
-            if (is_selected)
-                ImGui::SetItemDefaultFocus();   // You may set the initial focus when opening the combo (scrolling + for keyboard navigation support)
+            ImGui::EndCombo();
         }
-        ImGui::EndCombo();
-    }
-    auto currentPreview = manager->parameters->previewNames[manager->parameters->selectedPreview].c_str();
-    if(ImGui::BeginCombo("##PreviewSize",currentPreview)) {
-        for(int i =0; i<manager->parameters->previewSizes.size(); i++){
-            auto item = manager->parameters->previewNames[i].c_str();
-            bool is_selected = (manager->parameters->selectedPreview == i); // You can store your selection however you want, outside or inside your objects
-            if (ImGui::Selectable(item, is_selected)){
-                manager->parameters->selectedPreview = i;
-                manager->parameters->resetResCamera = true;
+        auto currentPreview = manager->parameters->currentSensor->previewNames[manager->parameters->selectedPreview].c_str();
+        if(ImGui::BeginCombo("##PreviewSize",currentPreview)) {
+            for(int i =0; i<manager->parameters->currentSensor->previewSizes.size(); i++){
+                auto item = manager->parameters->currentSensor->previewNames[i].c_str();
+                bool is_selected = (manager->parameters->selectedPreview == i); // You can store your selection however you want, outside or inside your objects
+                if (ImGui::Selectable(item, is_selected)){
+                    manager->parameters->selectedPreview = i;
+                    manager->parameters->resetResCamera = true;
+                }
+                if (is_selected)
+                    ImGui::SetItemDefaultFocus();   // You may set the initial focus when opening the combo (scrolling + for keyboard navigation support)
             }
-            if (is_selected)
-                ImGui::SetItemDefaultFocus();   // You may set the initial focus when opening the combo (scrolling + for keyboard navigation support)
+            ImGui::EndCombo();
         }
-        ImGui::EndCombo();
     }
+    EndGroupPanel();
+
     static bool show_demo_window = false;
     ImGui::SliderInt("FrameCount",&manager->parameters->maxRequest,3,50);
     ImGui::SliderFloat("SliderExample",&manager->sliderTest,0,1,"%.3f",ImGuiSliderFlags_AlwaysClamp);

@@ -66,10 +66,11 @@ void Preview(UiManager* manager){
         auto shiftY = bsize.y;
         ImGui::SetCursorPos(ImVec2{edisp.x*0.2f-bsize.x/2,shiftY - bsize.y/2});
         ImGui::PushFont(io.Fonts->Fonts[2]);
-        CircleButton(ICON_MD_AUTORENEW,bsize,bsize.x/2,ImVec2{bsize.x/2,bsize.y/2});
+        bool flip = CircleButton(ICON_MD_AUTORENEW,bsize,bsize.x/2,ImVec2{bsize.x/2,bsize.y/2});
+        manager->parameters->flipCamera = std::max(manager->parameters->flipCamera,flip);
         ImGui::SetCursorPos(ImVec2{edisp.x*0.5f-bsize.x/2.0f,shiftY - bsize.y/2.f});
         bool shot = CircleButton(ICON_MD_LENS,bsize,bsize.x/2,ImVec2{bsize.x/2,bsize.y/2});
-        manager->parameters->takePicture = std::max(shot,manager->parameters->takePicture);
+        manager->parameters->takePicture = std::max(manager->parameters->takePicture,shot);
         ImGui::SetCursorPos(ImVec2{edisp.x*0.8f-bsize.x/2,shiftY - bsize.y/2});
 
 

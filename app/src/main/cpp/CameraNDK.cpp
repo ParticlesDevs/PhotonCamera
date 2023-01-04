@@ -51,6 +51,12 @@ static void captureCompleted(void* context, ACameraCaptureSession* session,
 
         LOGI("Capture Completed buffer count %d\n", cam->parameters->buffCnt);
     }
+    if(cam->parameters->flipCamera){
+        cam->parameters->flipCamera = false;
+        cam->parameters->selectedID = (cam->parameters->selectedID+1)%cam->parameters->cameraIDs.size();
+        cam->Restart();
+    }
+
 }
 
 static void captureSequenceCompleted(void* context, ACameraCaptureSession* session,
@@ -100,8 +106,8 @@ void CameraNDK::Reset(){
         captureSessionOutputContainer = nullptr;
     }
     ACaptureSessionOutputContainer_create(&captureSessionOutputContainer);
-    cam->parameters->rawSize = cam->parameters->rawSizes[cam->parameters->selectedRaw];
-    cam->parameters->previewSize = cam->parameters->previewSizes[cam->parameters->selectedPreview];
+    cam->parameters->rawSize = cam->parameters->currentSensor->rawSizes[cam->parameters->selectedRaw];
+    cam->parameters->previewSize = cam->parameters->currentSensor->previewSizes[cam->parameters->selectedPreview];
     cam->parameters->aspect = float(cam->parameters->previewSize.first)/float(cam->parameters->previewSize.second);
     AImageReader_new(cam->parameters->rawSize.first,
                      cam->parameters->rawSize.second,cam->parameters->rawFormat,MAXFRAMES,&inputFrames);
@@ -110,6 +116,41 @@ void CameraNDK::Reset(){
     listener.onImageAvailable = onImageAvailable;
     AImageReader_setImageListener(inputFrames, &listener);
 
+}
+
+void CameraNDK::Restart(){
+    parameters->id = parameters->cameraIDs[parameters->selectedID].c_str();
+    parameters->currentSensor = &parameters->sensors[parameters->selectedID];
+    ACameraManager *cameraManager = ACameraManager_create();
+    if(cameraCharacteristics != nullptr)
+        ACameraMetadata_free(cameraCharacteristics);
+    auto camera_status = ACameraManager_getCameraCharacteristics(cameraManager,
+                                                                 parameters->id,
+                                                            &cameraCharacteristics);
+
+    //ACameraMetadata_getAllTags(cameraCharacteristics, &tagsEntries,&tags);
+    if (camera_status != ACAMERA_OK) {
+        LOGE("Failed to get camera meta data of ID:%s\n", parameters->id);
+    }
+
+    if(cameraDevice != nullptr)
+        ACameraDevice_close(cameraDevice);
+    camera_status = ACameraManager_openCamera(cameraManager, parameters->id,
+                                              &deviceStateCallbacks, &cameraDevice);
+
+    if (camera_status != ACAMERA_OK) {
+        LOGE("Failed to open camera device (id: %s)\n", parameters->id);
+    }
+
+    ACameraManager_delete(cameraManager);
+    MainSize(static_cast<AIMAGE_FORMATS>(parameters->rawFormat), parameters->aspect);
+    LOGD("Selected raw size %d %d",parameters->rawSize.first,parameters->rawSize.second);
+    PreviewSize();
+    LOGD("Selected preview size %d %d",parameters->previewSize.first,parameters->previewSize.second);
+    Reset();
+    ACameraCaptureSession_close(captureSession);
+    captureSession = nullptr;
+    StartPreview();
 }
 
 void CameraNDK::OpenCamera(ACameraDevice_request_template templateId,AIMAGE_FORMATS format, float currentAspect) {
@@ -138,8 +179,19 @@ void CameraNDK::OpenCamera(ACameraDevice_request_template templateId,AIMAGE_FORM
         LOGE("No camera device detected.\n");
         return;
     }
-
-    parameters->id = cameraIdList->cameraIds[0];
+    parameters->sensors.clear();
+    parameters->sensors = std::vector<SensorParameters>(cameraIdList->numCameras);
+    for(int i =0; i<cameraIdList->numCameras;i++){
+        auto params = SensorParameters();
+        parameters->cameraIDs.emplace_back(cameraIdList->cameraIds[i]);
+        parameters->sensors[i].id = parameters->cameraIDs[i].c_str();
+        LOGD("parameters->sensors[i].id %p",parameters->sensors[i].id);
+    }
+    parameters->selectedID = 0;
+    parameters->id = parameters->cameraIDs[parameters->selectedID].c_str();
+    parameters->currentSensor = &parameters->sensors[parameters->selectedID];
+    LOGD("parameters->currentSensor %p",parameters->currentSensor->id);
+    parameters->rawFormat = format;
 
     LOGI("Trying to open Camera2 (id: %s, num of camera : %d)\n", parameters->id,
          cameraIdList->numCameras);
@@ -229,10 +281,14 @@ void CameraNDK::StartPreview() {
             LOGE("Failed to get inputWindow.\n");
         }
         ANativeWindow_acquire(readerNativeWindow);
+        if(OutputTarget != nullptr)
+            ACameraOutputTarget_free(OutputTarget);
         camera_status = ACameraOutputTarget_create(readerNativeWindow, &OutputTarget);
         if (camera_status != ACAMERA_OK) {
             LOGE("Failed to create Target Burst.\n");
         }
+        if(readerOutput != nullptr)
+            ACaptureSessionOutput_free(readerOutput);
         camera_status = ACaptureSessionOutput_create(readerNativeWindow, &readerOutput);
         if (camera_status != ACAMERA_OK) {
             LOGE("Failed to create CaptureSession.\n");
@@ -271,6 +327,7 @@ void CameraNDK::StartPreview() {
 }
 
 void CameraNDK::MainSize(AIMAGE_FORMATS format, float currentAspect) const {
+    parameters->currentSensor->rawSizes.clear();
     parameters->aspect = currentAspect;
     ACameraMetadata_const_entry entry;
     auto ret = ACameraMetadata_getConstEntry(cameraCharacteristics,ACAMERA_SCALER_AVAILABLE_STREAM_CONFIGURATIONS,&entry);
@@ -290,8 +347,8 @@ void CameraNDK::MainSize(AIMAGE_FORMATS format, float currentAspect) const {
             auto nw = entry.data.i32[i+1];
             auto nh = entry.data.i32[i+2];
             string build = (std::to_string(nw)+ "X" + std::to_string(nh)+" Raw");
-            parameters->rawNames.push_back(build);
-            parameters->rawSizes.emplace_back(nw,nh);
+            parameters->currentSensor->rawNames.push_back(build);
+            parameters->currentSensor->rawSizes.emplace_back(nw,nh);
             if(currentAspect == 0.f) {
                 if (height * width < nw * nh && !(found && (nw * nh > 5000 * 5000))) {
                     height = nh;
@@ -319,9 +376,10 @@ void CameraNDK::MainSize(AIMAGE_FORMATS format, float currentAspect) const {
      listener.onImageAvailable = onImageAvailable;
      AImageReader_setImageListener(inputFrames, &listener);*/
     LOGD("Selected raw size %d %d",width,height);
-    parameters->rawSize = parameters->rawSizes[parameters->selectedRaw];
+    parameters->rawSize = parameters->currentSensor->rawSizes[parameters->selectedRaw];
 }
 void CameraNDK::PreviewSize() const {
+    parameters->currentSensor->previewSizes.clear();
     ACameraMetadata_const_entry entry;
     ACameraMetadata_getConstEntry(cameraCharacteristics,ACAMERA_SCALER_AVAILABLE_STREAM_CONFIGURATIONS,&entry);
     float k = parameters->aspect;
@@ -334,8 +392,8 @@ void CameraNDK::PreviewSize() const {
             auto nw = entry.data.i32[i+1];
             auto nh = entry.data.i32[i+2];
             string build = (std::to_string(nw)+ "X" + std::to_string(nh)+" Preview");
-            parameters->previewNames.push_back(build);
-            parameters->previewSizes.emplace_back(nw,nh);
+            parameters->currentSensor->previewNames.push_back(build);
+            parameters->currentSensor->previewSizes.emplace_back(nw,nh);
             if(nw*nh > height * width && nw * nh < 2000 * 2000 && abs(float(nw) / float(nh) - k) < 0.05f){
                 height = nh;
                 width = nw;

@@ -6,24 +6,44 @@
 #define PHOTONCAMERA_CAMERAPARAMETERS_H
 #include <utility>
 #include <vector>
+#include <regex>
+
+//Camera control and info structures
 enum Backend { CameraNDK, Camera2API };
+struct SensorParameters{
+    const char* id; //Camera id string
+    int rawFormat;
+    int selectedPreview; // Selected preview size
+    int selectedRaw; // Selected raw size
+
+
+    std::vector<std::pair<int,int>> previewSizes; // Sensor YUV sizes
+    std::vector<std::string> previewNames; // Sensor YUV formatted names
+    std::vector<std::pair<int,int>> rawSizes; // Sensor RAW10 RAW12 RAW16 sizes
+    std::vector<std::string> rawNames; // Sensor RAW10 RAW12 RAW16 formatted names
+
+};
 struct CameraParameters{
     Backend currentBackend = CameraNDK;
     GLuint cameraPreviewID;
-    const char* id; //Camera id string
     std::pair<int, int> previewSize;
     std::pair<int, int> rawSize;
+    int rawFormat;
     int selectedPreview; // Selected preview size
     int selectedRaw; // Selected raw size
-    int rawFormat;
+    SensorParameters *currentSensor;
 
-    std::vector<std::pair<int,int>> previewSizes; // Camera YUV sizes
-    std::vector<std::string> previewNames; // Camera YUV formatted names
-    std::vector<std::pair<int,int>> rawSizes; // Camera RAW10 RAW12 RAW16 sizes
-    std::vector<std::string> rawNames; // Camera RAW10 RAW12 RAW16 formatted names
+
+
+    int selectedID; //Camera id number
+    const char* id; //Camera id string
+    std::vector<std::string> cameraIDs;
+    std::vector<SensorParameters> sensors;
+
 
     bool takePicture = false; // Button to take picture from camera
     bool resetResCamera = false;
+    bool flipCamera = false;
     float aspect = 1.f;
     int buffCnt = 0;
     int buffAvailable = 50;

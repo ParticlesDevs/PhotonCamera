@@ -4,5 +4,6 @@
     <mapping directory="$PROJECT_DIR$" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/app/src/main/cpp/deps/glm" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/app/src/main/cpp/deps/imgui" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/app/src/main/cpp/deps/tinydng" vcs="Git" />
   </component>
 </project>
