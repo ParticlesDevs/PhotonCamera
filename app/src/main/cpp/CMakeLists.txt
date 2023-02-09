@@ -5,12 +5,15 @@ project(NPhotonCamera)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 set(SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 add_library(${CMAKE_PROJECT_NAME} SHARED
         ${SRC_DIR}/Util/EglPlate.cpp
         ${SRC_DIR}/Util/FileManager.cpp
         ${SRC_DIR}/Util/Widgets.cpp
+        ${SRC_DIR}/Util/export_avif.cpp
+        ${SRC_DIR}/Util/export_jxl.cpp
         ${SRC_DIR}/main.cpp
         ${SRC_DIR}/CameraNDK.cpp
         ${SRC_DIR}/deps/imgui/imgui.cpp
@@ -30,6 +33,7 @@ add_library(${CMAKE_PROJECT_NAME} SHARED
         ${SRC_DIR}/Processing/ProcessorQueue.cpp
         ${SRC_DIR}/Processing/Processor.cpp
         ${ANDROID_NDK}/sources/android/native_app_glue/android_native_app_glue.c
+        ${ANDROID_NDK}/sources/android/cpufeatures/cpu-features.c
         )
 
 set(CMAKE_SHARED_LINKER_FLAGS
@@ -53,6 +57,41 @@ target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE
         IMGUI_IMPL_OPENGL_ES3
         )
 
+set(CONFIG_PIC 1 CACHE INTERNAL "Build with PIC enabled." INTERNAL)
+set(ENABLE_DOCS false CACHE INTERNAL "Enable documentation generation (doxygen required).")
+set(ENABLE_EXAMPLES false CACHE INTERNAL "Enables build of example code.")
+set(ENABLE_TOOLS false CACHE INTERNAL "Enable applications in tools sub directory.")
+set(ENABLE_TESTS false CACHE INTERNAL "Enables unit tests.")
+set(ENABLE_TESTDATA false CACHE INTERNAL "Enables unit test data download targets.")
+add_subdirectory(deps/aom EXCLUDE_FROM_ALL)
+
+set(AVIF_CODEC_AOM true CACHE INTERNAL "Use the AOM codec for encoding/decoding (see AVIF_CODEC_AOM_DECODE/AVIF_CODEC_AOM_ENCODE)")
+set(AVIF_BUILD_TESTS false CACHE INTERNAL "Build avif tests.")
+set(AVIF_ENABLE_GTEST false CACHE INTERNAL "Build avif C++ tests, which depend on GoogleTest. Requires GoogleTest. Has no effect unless AVIF_BUILD_TESTS is ON.")
+set(AVIF_ENABLE_WERROR false CACHE INTERNAL "Treat all compiler warnings as errors")
+add_subdirectory(deps/libavif EXCLUDE_FROM_ALL)
+target_include_directories(avif PRIVATE ${SRC_DIR}/deps/aom/ )
+
+set(JPEGXL_ENABLE_SKCMS true CACHE INTERNAL "Build with skcms instead of lcms2.")
+set(JPEGXL_BUNDLE_SKCMS true CACHE INTERNAL "When building with skcms, bundle it into libjxl.a.")
+set(JPEGXL_ENABLE_FUZZERS false CACHE INTERNAL "Build JPEGXL fuzzer targets.")
+set(JPEGXL_ENABLE_TOOLS false CACHE INTERNAL "Build JPEGXL user tools: cjxl and djxl.")
+set(JPEGXL_ENABLE_JPEGLI_LIBJPEG false CACHE INTERNAL "Build libjpeg.so shared library based on jpegli.")
+set(JPEGXL_ENABLE_DOXYGEN false CACHE INTERNAL "Generate C API documentation using Doxygen.")
+set(JPEGXL_ENABLE_MANPAGES false CACHE INTERNAL "Build and install man pages for the command-line tools.")
+set(JPEGXL_ENABLE_BENCHMARK false CACHE INTERNAL "Build JPEGXL benchmark tools.")
+set(JPEGXL_ENABLE_EXAMPLES false CACHE INTERNAL "Build JPEGXL library usage examples.")
+set(JPEGXL_ENABLE_JNI false CACHE INTERNAL "Build JPEGXL JNI Java wrapper, if Java dependencies are installed.")
+set(JPEGXL_ENABLE_SJPEG false CACHE INTERNAL "Build JPEGXL with support for encoding with sjpeg.")
+set(JPEGXL_ENABLE_OPENEXR false CACHE INTERNAL "Build JPEGXL with support for OpenEXR if available.")
+set(JPEGXL_ENABLE_TCMALLOC false CACHE INTERNAL "Build JPEGXL using gperftools (tcmalloc) allocator.")
+set(JPEGXL_WARNINGS_AS_ERRORS false CACHE INTERNAL "Treat warnings as errors during compilation.")
+set(HWY_FORCE_STATIC_LIBS true CACHE INTERNAL "Ignore BUILD_SHARED_LIBS")
+set(HWY_ENABLE_EXAMPLES false CACHE INTERNAL "Build examples")
+set(HWY_ENABLE_INSTALL false CACHE INTERNAL "Install library")
+set(HWY_ENABLE_TESTS false CACHE INTERNAL "Enable HWY tests")
+add_subdirectory(deps/libjxl EXCLUDE_FROM_ALL)
+
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE
         android
         EGL
@@ -60,6 +99,10 @@ target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE
         camera2ndk
         mediandk
         log
+        avif
+        aom
+        jxl-static
+        jxl_threads-static
         )
 add_compile_definitions(ENABLE_DEMO_WINDOWS #comment this define to disable demo windows
         )

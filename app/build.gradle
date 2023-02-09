@@ -6,7 +6,7 @@ plugins {
 android {
     signingConfigs {
         debug {
-            storeFile file('/home/eszdman/StudioProjects/PhotonCamera/key/PcamLeak.jks')
+            storeFile file('../key/PcamLeak.jks')
             storePassword 'photoncamera'
             keyPassword 'photoncamera'
             keyAlias 'key0'
@@ -46,6 +46,14 @@ android {
         }
         versionName '0.852'
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+
+        externalNativeBuild {
+            cmake {
+                // BUILD_SHARED_LIBS=OFF to build static libaom, libavif, libjxl
+                arguments "-DBUILD_SHARED_LIBS=OFF", "-DBUILD_TESTING=OFF"
+                targets "NPhotonCamera"
+            }
+        }
     }
 
     buildTypes {
