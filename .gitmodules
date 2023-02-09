@@ -10,3 +10,6 @@
 [submodule "app/src/main/cpp/deps/tinydng"]
 	path = app/src/main/cpp/deps/tinydng
 	url = https://github.com/syoyo/tinydng
+[submodule "app/src/main/cpp/deps/aom"]
+	path = app/src/main/cpp/deps/aom
+	url = https://aomedia.googlesource.com/aom
