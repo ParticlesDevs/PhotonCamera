@@ -16,3 +16,7 @@
 [submodule "app/src/main/cpp/deps/libavif"]
 	path = app/src/main/cpp/deps/libavif
 	url = https://github.com/AOMediaCodec/libavif.git
+[submodule "app/src/main/cpp/deps/libjxl"]
+	path = app/src/main/cpp/deps/libjxl
+	url = https://github.com/libjxl/libjxl.git
+	branch = v0.8.x
