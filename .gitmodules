@@ -10,3 +10,13 @@
 [submodule "app/src/main/cpp/deps/tinydng"]
 	path = app/src/main/cpp/deps/tinydng
 	url = https://github.com/syoyo/tinydng
+[submodule "app/src/main/cpp/deps/aom"]
+	path = app/src/main/cpp/deps/aom
+	url = https://aomedia.googlesource.com/aom
+[submodule "app/src/main/cpp/deps/libavif"]
+	path = app/src/main/cpp/deps/libavif
+	url = https://github.com/AOMediaCodec/libavif.git
+[submodule "app/src/main/cpp/deps/libjxl"]
+	path = app/src/main/cpp/deps/libjxl
+	url = https://github.com/libjxl/libjxl.git
+	branch = v0.8.x
