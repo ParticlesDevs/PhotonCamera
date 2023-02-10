@@ -2,7 +2,7 @@ plugins {
     id 'com.android.application'
     id 'org.jetbrains.kotlin.android'
 }
-
+def versionProps = new Properties()
 android {
     signingConfigs {
         debug {
@@ -17,7 +17,6 @@ android {
     def versionPropsFile = file('version.properties')
     def versionBuild
     if (versionPropsFile.canRead()) {
-        Properties versionProps = new Properties()
         versionProps.load(new FileInputStream(versionPropsFile))
         versionBuild = versionProps['VERSION_BUILD'].toInteger()
     } else {
@@ -25,7 +24,6 @@ android {
     }
     ext.autoIncrementBuildNumber = {
         if (versionPropsFile.canRead()) {
-            Properties versionProps = new Properties()
             versionProps.load(new FileInputStream(versionPropsFile))
             versionBuild = versionProps['VERSION_BUILD'].toInteger() + 1
             versionProps['VERSION_BUILD'] = versionBuild.toString()
@@ -45,9 +43,17 @@ android {
             abiFilters "armeabi-v7a"
         }
         versionName '0.852'
+
+        versionProps['VERSION_NAME'] = versionName
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
-
+    gradle.taskGraph.whenReady { taskGraph ->
+        if (taskGraph.hasTask(assembleDebug)) {
+            autoIncrementBuildNumber()
+        } else if (taskGraph.hasTask(assembleRelease)) {
+            autoIncrementBuildNumber()
+        }
+    }
     buildTypes {
         release {
             minifyEnabled = false
@@ -85,5 +91,5 @@ android {
 }
 
 dependencies {
-
+    implementation "androidx.lifecycle:lifecycle-runtime-ktx:2.4.0-alpha03"
 }

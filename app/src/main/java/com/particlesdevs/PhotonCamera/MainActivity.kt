@@ -14,6 +14,7 @@ import android.view.inputmethod.InputMethodManager
 import android.view.KeyEvent
 import android.view.Surface
 import android.widget.Toast
+import kotlinx.coroutines.sync.Mutex
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.util.concurrent.LinkedBlockingQueue
@@ -22,9 +23,12 @@ import kotlin.system.exitProcess
 class MainActivity : NativeActivity() {
     lateinit var nativeBuffer: ByteBuffer
     lateinit var s: SurfaceTexture
+    lateinit var surf: Surface
     var updateSurface = false
     lateinit var mHandler: Handler
+    lateinit var context: Context
     public override fun onCreate(savedInstanceState: Bundle?) {
+        context = applicationContext
         //Load library symbols with native glue
         System.loadLibrary("NPhotonCamera")
         nativeBuffer = ByteBuffer.allocateDirect(32*4);
@@ -68,6 +72,15 @@ class MainActivity : NativeActivity() {
         inputMethodManager.hideSoftInputFromWindow(this.window.decorView.windowToken, 0)
     }
 
+    fun pressBack() {
+        super.onBackPressed()
+    }
+
+    override fun onBackPressed() {
+
+        //super.onBackPressed()
+    }
+
     // We assume dispatchKeyEvent() of the NativeActivity is actually called for every
     // KeyEvent and not consumed by any View before it reaches here
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
@@ -87,6 +100,21 @@ class MainActivity : NativeActivity() {
     fun getUnicodeByteBuffer(): ByteBuffer {
         return nativeBuffer
     }
+    fun getName(): String {
+        return packageName
+    }
+    fun getCache(): String {
+        return cacheDir.absolutePath
+    }
+    fun Camera2APIInit(){
+
+    }
+    fun setCamera2APIPreview(){
+
+    }
+    fun Camera2APIReInit(){
+
+    }
     //Used by JNI
     fun updateTexImage(){
         s.updateTexImage()
@@ -102,7 +130,7 @@ class MainActivity : NativeActivity() {
         s.setOnFrameAvailableListener {
             onImageAvailable()
         }
-
-        return Surface(s)
+        surf = Surface(s)
+        return surf
     }
 }

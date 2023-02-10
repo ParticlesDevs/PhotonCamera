@@ -7,6 +7,7 @@
 #include <utility>
 #include <vector>
 #include <regex>
+#include "ProcessingParameters.h"
 
 //Camera control and info structures
 enum Backend { CameraNDK, Camera2API };
@@ -16,12 +17,11 @@ struct SensorParameters{
     int selectedPreview; // Selected preview size
     int selectedRaw; // Selected raw size
 
-
+    ProcessingParameters processing;
     std::vector<std::pair<int,int>> previewSizes; // Sensor YUV sizes
     std::vector<std::string> previewNames; // Sensor YUV formatted names
     std::vector<std::pair<int,int>> rawSizes; // Sensor RAW10 RAW12 RAW16 sizes
     std::vector<std::string> rawNames; // Sensor RAW10 RAW12 RAW16 formatted names
-
 };
 struct CameraParameters{
     Backend currentBackend = CameraNDK;
@@ -41,6 +41,7 @@ struct CameraParameters{
     std::vector<SensorParameters> sensors;
 
 
+    bool previewActive = false;
     bool takePicture = false; // Button to take picture from camera
     bool resetResCamera = false;
     bool flipCamera = false;

@@ -33,7 +33,7 @@ void Preview(UiManager* manager){
     auto previewSize = ImVec2{disp.x,disp.x*manager->parameters->aspect};//Example MainSize
     //CameraNDK preview
     ImGui::SetCursorPos(cursor+ImVec2{0,(edisp.y-previewSize.y)/2});
-    if(manager->parameters->cameraPreviewID != 0)
+    if(manager->parameters->previewActive)
         UiTexture::Image(manager->parameters->cameraPreviewID,UiTexture::OES,previewSize);
     ImGui::SetCursorPos(cursor);
     ImGui::PushFont(io.Fonts->Fonts[3]);

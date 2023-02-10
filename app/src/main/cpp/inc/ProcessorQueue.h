@@ -6,12 +6,15 @@
 #define PHOTONCAMERA_PROCESSORQUEUE_H
 
 #include <media/NdkImage.h>
+#include <vector>
 
 class ProcessorQueue {
 public:
-    int* counter;
+    ProcessorQueue();
+    int* counter{};
     bool locked = false;//Lock for camera new inputs
-    void post(AImage **buffers);
+
+    void post(std::vector<AImage *> buffers);
 };
 
 

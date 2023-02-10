@@ -42,6 +42,7 @@ static void captureCompleted(void* context, ACameraCaptureSession* session,
 
     if(cam->parameters->requestedBuffers != 0) {
         if(cam->parameters->buffCnt >= cam->parameters->requestedBuffers){
+            cam->processorQueue.post(buffers);
             LOGI("Capture Burst %d Completed\n", cam->parameters->requestedBuffers);
             cam->parameters->requestedBuffers = 0;
             ACaptureRequest_removeTarget(cam->captureRequest, cam->OutputTarget);
@@ -72,7 +73,7 @@ static void onImageAvailable(void* context, AImageReader* reader){
         buffers[cam->parameters->buffCnt] = image;
         cam->parameters->buffCnt++;
         LOGI("CameraNDK read image %d\n",cam->parameters->buffCnt);
-        AImage_delete(image);
+        //AImage_delete(image);
     } else {
         AImage_delete(image);
     }
@@ -115,10 +116,11 @@ void CameraNDK::Reset(){
     listener.context = inputFrames;
     listener.onImageAvailable = onImageAvailable;
     AImageReader_setImageListener(inputFrames, &listener);
-
+    FillCharacteristics();
 }
 
 void CameraNDK::Restart(){
+    parameters->previewActive = false;
     parameters->id = parameters->cameraIDs[parameters->selectedID].c_str();
     parameters->currentSensor = &parameters->sensors[parameters->selectedID];
     ACameraManager *cameraManager = ACameraManager_create();
@@ -132,7 +134,8 @@ void CameraNDK::Restart(){
     if (camera_status != ACAMERA_OK) {
         LOGE("Failed to get camera meta data of ID:%s\n", parameters->id);
     }
-
+    if(captureSession != nullptr)
+        ACameraCaptureSession_close(captureSession);
     if(cameraDevice != nullptr)
         ACameraDevice_close(cameraDevice);
     camera_status = ACameraManager_openCamera(cameraManager, parameters->id,
@@ -148,9 +151,39 @@ void CameraNDK::Restart(){
     PreviewSize();
     LOGD("Selected preview size %d %d",parameters->previewSize.first,parameters->previewSize.second);
     Reset();
-    ACameraCaptureSession_close(captureSession);
     captureSession = nullptr;
     StartPreview();
+}
+//Get current sensor entry
+ACameraMetadata_const_entry CameraNDK::getEntry(uint32_t tag){
+    ACameraMetadata_const_entry entry;
+    auto ret = ACameraMetadata_getConstEntry(cameraCharacteristics,tag,&entry);
+    if(ret != ACAMERA_OK) {
+        LOGE("Error: Missing from characteristics!");
+    }
+    return entry;
+}
+void CameraNDK::FillCharacteristics(){
+    auto sensor = parameters->currentSensor;
+    auto internal = &sensor->processing;
+
+    internal->rawSize[0] = sensor->rawSizes[parameters->currentSensor->selectedRaw].first;
+    internal->rawSize[1] = sensor->rawSizes[parameters->currentSensor->selectedRaw].first;
+    LOGD("Filling internal parameters");
+    auto sensorSize = getEntry(ACAMERA_SENSOR_INFO_PHYSICAL_SIZE);
+    auto CFA = getEntry(ACAMERA_SENSOR_INFO_COLOR_FILTER_ARRANGEMENT);
+    auto analogISO = getEntry(ACAMERA_SENSOR_MAX_ANALOG_SENSITIVITY);
+    auto focal = getEntry(ACAMERA_LENS_INFO_AVAILABLE_FOCAL_LENGTHS);
+    auto aperture = getEntry(ACAMERA_LENS_APERTURE);
+
+    internal->sensorSize[0] = sensorSize.data.f[0];
+    internal->sensorSize[1] = sensorSize.data.f[1];
+    internal->CFA = CFA.data.u8[0];
+    internal->analogISO = analogISO.data.i32[0];
+    internal->focalLength = focal.data.f[0];
+    internal->aperture = aperture.data.f[0];
+    LOGD("Internal parameters done");
+
 }
 
 void CameraNDK::OpenCamera(ACameraDevice_request_template templateId,AIMAGE_FORMATS format, float currentAspect) {
@@ -280,7 +313,8 @@ void CameraNDK::StartPreview() {
         if (status != AMEDIA_OK) {
             LOGE("Failed to get inputWindow.\n");
         }
-        ANativeWindow_acquire(readerNativeWindow);
+
+
         if(OutputTarget != nullptr)
             ACameraOutputTarget_free(OutputTarget);
         camera_status = ACameraOutputTarget_create(readerNativeWindow, &OutputTarget);
@@ -323,17 +357,14 @@ void CameraNDK::StartPreview() {
     captureSessionCaptureCallbacks.onCaptureSequenceCompleted = captureSequenceCompleted;
     ACameraCaptureSession_setRepeatingRequest(captureSession, &captureSessionCaptureCallbacks, 1,
                                               &captureRequest, nullptr);
+    parameters->previewActive = true;
 
 }
 
-void CameraNDK::MainSize(AIMAGE_FORMATS format, float currentAspect) const {
+void CameraNDK::MainSize(AIMAGE_FORMATS format, float currentAspect) {
     parameters->currentSensor->rawSizes.clear();
     parameters->aspect = currentAspect;
-    ACameraMetadata_const_entry entry;
-    auto ret = ACameraMetadata_getConstEntry(cameraCharacteristics,ACAMERA_SCALER_AVAILABLE_STREAM_CONFIGURATIONS,&entry);
-    if(ret != ACAMERA_OK) {
-        LOGE("Error: Missing from characteristics!");
-    }
+    ACameraMetadata_const_entry entry = getEntry(ACAMERA_SCALER_AVAILABLE_STREAM_CONFIGURATIONS);
 
     int height = 0;
     int width = 0;
@@ -378,10 +409,9 @@ void CameraNDK::MainSize(AIMAGE_FORMATS format, float currentAspect) const {
     LOGD("Selected raw size %d %d",width,height);
     parameters->rawSize = parameters->currentSensor->rawSizes[parameters->selectedRaw];
 }
-void CameraNDK::PreviewSize() const {
+void CameraNDK::PreviewSize() {
     parameters->currentSensor->previewSizes.clear();
-    ACameraMetadata_const_entry entry;
-    ACameraMetadata_getConstEntry(cameraCharacteristics,ACAMERA_SCALER_AVAILABLE_STREAM_CONFIGURATIONS,&entry);
+    ACameraMetadata_const_entry entry = getEntry(ACAMERA_SCALER_AVAILABLE_STREAM_CONFIGURATIONS);
     float k = parameters->aspect;
     int height = 0;
     int width = 0;

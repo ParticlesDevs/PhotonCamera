@@ -27,7 +27,7 @@ void setNDKPreview(){
     camera.theNativeWindow = window;
 }
 void CameraNDKInit(){
-    camera.OpenCamera(TEMPLATE_ZERO_SHUTTER_LAG,AIMAGE_FORMAT_RAW16,4.f/3.f);
+    camera.OpenCamera(TEMPLATE_PREVIEW,AIMAGE_FORMAT_RAW16,4.f/3.f);
     glGenTextures(1,&camera.parameters->cameraPreviewID);
     glBindTexture(GL_TEXTURE_EXTERNAL_OES, camera.parameters->cameraPreviewID);
 

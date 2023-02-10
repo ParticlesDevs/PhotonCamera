@@ -15,12 +15,14 @@
 #include <utility>
 #include <vector>
 #include "CameraParameters.h"
+#include "ProcessorQueue.h"
 
 #define MAXFRAMES 51
 static std::vector<AImage*> buffers;
 class CameraNDK {
 public:
     CameraParameters *parameters;
+    ProcessorQueue processorQueue;
     ACameraDevice_request_template templateID;
     //int32_t tagsEntries;
     //const uint32_t* tags;
@@ -43,12 +45,16 @@ public:
     void OpenCamera(ACameraDevice_request_template templateId,AIMAGE_FORMATS format, float currentAspect);
     void CloseCamera();
     void StartPreview();
-    void MainSize(AIMAGE_FORMATS format, float currentAspect = -1.f) const;
-    void PreviewSize() const;
+    void MainSize(AIMAGE_FORMATS format, float currentAspect = -1.f);
+    void PreviewSize();
 
     void Reset();
 
     void Restart();
+
+    void FillCharacteristics();
+
+    ACameraMetadata_const_entry getEntry(uint32_t tag);
 };
 
 
