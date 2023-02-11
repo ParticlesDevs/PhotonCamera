@@ -1,11 +1,10 @@
-
 #include "export_avif.h"
 #include <avif/avif.h>
 
+#include <stdio.h>
 #include <thread>
 
-#include <stdio.h>
-#define LOGE printf
+#include "logs.h"
 
 bool save_avif_to_file(const char *filename, uint32_t width, uint32_t height, const uint16_t *pixels, const uint8_t *exif, size_t exifSize)
 {
