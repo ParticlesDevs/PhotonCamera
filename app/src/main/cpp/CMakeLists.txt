@@ -22,6 +22,7 @@ add_library(${CMAKE_PROJECT_NAME} SHARED
         ${SRC_DIR}/Util/export_avif.cpp
         ${SRC_DIR}/Util/export_jxl.cpp
         ${SRC_DIR}/Util/import_avif.cpp
+        ${SRC_DIR}/Util/import_jxl.cpp
         ${SRC_DIR}/main.cpp
         ${SRC_DIR}/CameraNDK.cpp
         ${SRC_DIR}/deps/imgui/imgui.cpp
