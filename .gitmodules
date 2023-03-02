@@ -23,3 +23,7 @@
 	path = app/src/main/cpp/deps/libjxl
 	url = https://github.com/libjxl/libjxl.git
 	branch = v0.8.x
+[submodule "app/src/main/cpp/deps/exiv2"]
+	path = app/src/main/cpp/deps/exiv2
+	url = https://github.com/Exiv2/exiv2.git
+	branch = 0.27-maintenance
