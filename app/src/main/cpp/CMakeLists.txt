@@ -19,6 +19,7 @@ add_library(${CMAKE_PROJECT_NAME} SHARED
         ${SRC_DIR}/Util/EglPlate.cpp
         ${SRC_DIR}/Util/FileManager.cpp
         ${SRC_DIR}/Util/Widgets.cpp
+        ${SRC_DIR}/Util/exiv_wrapper.cpp
         ${SRC_DIR}/Util/export_avif.cpp
         ${SRC_DIR}/Util/export_jxl.cpp
         ${SRC_DIR}/Util/import_avif.cpp
@@ -58,6 +59,7 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
         ${SRC_DIR}/deps/tinydng
         ${SRC_DIR}
         ${ANDROID_NDK}/sources/android/native_app_glue
+        ${CMAKE_BINARY_DIR} # needed to find exv_conf.h
         )
 target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE
         IMGUI_USER_CONFIG=<imguiConf.h>
@@ -66,6 +68,11 @@ target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE
         )
 target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE
         IMGUI_IMPL_OPENGL_ES3
+        )
+
+target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE
+        -Wno-deprecated-declarations #disable warnings from exiv2/exiv2.hpp
+        -Wno-extra-semi
         )
 
 set(CONFIG_PIC 1 CACHE INTERNAL "Build with PIC enabled." INTERNAL)
@@ -103,6 +110,15 @@ set(HWY_ENABLE_INSTALL false CACHE INTERNAL "Install library")
 set(HWY_ENABLE_TESTS false CACHE INTERNAL "Enable HWY tests")
 add_subdirectory(deps/libjxl EXCLUDE_FROM_ALL)
 
+set(EXIV2_ENABLE_XMP false CACHE INTERNAL "Build with XMP metadata support")
+set(EXIV2_ENABLE_PNG false CACHE INTERNAL "Build with png support (requires libz)")
+set(EXIV2_ENABLE_BMFF true CACHE INTERNAL "Build with BMFF support")
+set(EXIV2_BUILD_SAMPLES false CACHE INTERNAL "Build sample applications")
+set(EXIV2_BUILD_EXIV2_COMMAND false CACHE INTERNAL "Build exiv2 command-line executable")
+add_subdirectory(deps/exiv2 EXCLUDE_FROM_ALL)
+target_compile_options(exiv2lib PRIVATE -Wno-deprecated-declarations -Wno-extra-semi -Wno-deprecated-copy)
+target_compile_options(exiv2lib_int PRIVATE -Wno-deprecated-declarations -Wno-extra-semi -Wno-deprecated-copy)
+
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE
         android
         EGL
@@ -115,6 +131,7 @@ target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE
         aom
         jxl-static
         jxl_threads-static
+        exiv2lib
         )
 add_compile_definitions(ENABLE_DEMO_WINDOWS #comment this define to disable demo windows
         )
