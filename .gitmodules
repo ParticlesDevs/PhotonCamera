@@ -27,3 +27,6 @@
 	path = app/src/main/cpp/deps/exiv2
 	url = https://github.com/Exiv2/exiv2.git
 	branch = 0.27-maintenance
+[submodule "app/src/main/cpp/deps/dng_writer"]
+	path = app/src/main/cpp/deps/dng_writer
+	url = https://github.com/ParticlesDevs/dng_writer

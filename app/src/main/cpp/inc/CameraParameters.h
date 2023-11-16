@@ -8,7 +8,7 @@
 #include <vector>
 #include <regex>
 #include "ProcessingParameters.h"
-
+#include "gl.h"
 //Camera control and info structures
 enum Backend { CameraNDK, Camera2API };
 struct SensorParameters{

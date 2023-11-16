@@ -15,14 +15,14 @@
 #include <utility>
 #include <vector>
 #include "CameraParameters.h"
-#include "ProcessorQueue.h"
+#include "Processor.h"
 
 #define MAXFRAMES 51
 static std::vector<AImage*> buffers;
 class CameraNDK {
 public:
     CameraParameters *parameters;
-    ProcessorQueue processorQueue;
+    Processor *processor;
     ACameraDevice_request_template templateID;
     //int32_t tagsEntries;
     //const uint32_t* tags;

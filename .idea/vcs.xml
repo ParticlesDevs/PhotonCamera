@@ -3,6 +3,9 @@
   <component name="VcsDirectoryMappings">
     <mapping directory="$PROJECT_DIR$" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/app/src/main/cpp/deps/aom" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/app/src/main/cpp/deps/dng_writer" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/app/src/main/cpp/deps/dng_writer/deps/libtiff" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/app/src/main/cpp/deps/exiv2" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/app/src/main/cpp/deps/glm" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/app/src/main/cpp/deps/imgui" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/app/src/main/cpp/deps/libavif" vcs="Git" />

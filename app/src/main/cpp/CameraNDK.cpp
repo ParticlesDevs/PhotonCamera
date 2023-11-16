@@ -42,7 +42,7 @@ static void captureCompleted(void* context, ACameraCaptureSession* session,
 
     if(cam->parameters->requestedBuffers != 0) {
         if(cam->parameters->buffCnt >= cam->parameters->requestedBuffers){
-            cam->processorQueue.post(buffers);
+            cam->processor->post(buffers);
             LOGI("Capture Burst %d Completed\n", cam->parameters->requestedBuffers);
             cam->parameters->requestedBuffers = 0;
             ACaptureRequest_removeTarget(cam->captureRequest, cam->OutputTarget);
@@ -69,7 +69,6 @@ static void onImageAvailable(void* context, AImageReader* reader){
     AImageReader_acquireNextImage(reader,&image);
 
     if(cam->parameters->buffCnt < cam->parameters->requestedBuffers) {
-
         buffers[cam->parameters->buffCnt] = image;
         cam->parameters->buffCnt++;
         LOGI("CameraNDK read image %d\n",cam->parameters->buffCnt);
@@ -165,16 +164,25 @@ ACameraMetadata_const_entry CameraNDK::getEntry(uint32_t tag){
 }
 void CameraNDK::FillCharacteristics(){
     auto sensor = parameters->currentSensor;
+    processor->currentSensor = parameters->currentSensor;
     auto internal = &sensor->processing;
 
     internal->rawSize[0] = sensor->rawSizes[parameters->currentSensor->selectedRaw].first;
-    internal->rawSize[1] = sensor->rawSizes[parameters->currentSensor->selectedRaw].first;
+    internal->rawSize[1] = sensor->rawSizes[parameters->currentSensor->selectedRaw].second;
     LOGD("Filling internal parameters");
     auto sensorSize = getEntry(ACAMERA_SENSOR_INFO_PHYSICAL_SIZE);
     auto CFA = getEntry(ACAMERA_SENSOR_INFO_COLOR_FILTER_ARRANGEMENT);
     auto analogISO = getEntry(ACAMERA_SENSOR_MAX_ANALOG_SENSITIVITY);
     auto focal = getEntry(ACAMERA_LENS_INFO_AVAILABLE_FOCAL_LENGTHS);
     auto aperture = getEntry(ACAMERA_LENS_APERTURE);
+    auto bl = getEntry(ACAMERA_SENSOR_BLACK_LEVEL_PATTERN);
+    auto wl = getEntry(ACAMERA_SENSOR_INFO_WHITE_LEVEL);
+    auto ct1 = getEntry(ACAMERA_SENSOR_CALIBRATION_TRANSFORM1);
+    auto ct2 = getEntry(ACAMERA_SENSOR_CALIBRATION_TRANSFORM2);
+    auto cst1 = getEntry(ACAMERA_SENSOR_COLOR_TRANSFORM1);
+    auto cst2 = getEntry(ACAMERA_SENSOR_COLOR_TRANSFORM2);
+    auto fm1 = getEntry(ACAMERA_SENSOR_FORWARD_MATRIX1);
+    auto fm2 = getEntry(ACAMERA_SENSOR_FORWARD_MATRIX2);
 
     internal->sensorSize[0] = sensorSize.data.f[0];
     internal->sensorSize[1] = sensorSize.data.f[1];
@@ -182,6 +190,17 @@ void CameraNDK::FillCharacteristics(){
     internal->analogISO = analogISO.data.i32[0];
     internal->focalLength = focal.data.f[0];
     internal->aperture = aperture.data.f[0];
+    for(int i =0; i<4;i++)
+        internal->blackLevel[i] = float(bl.data.i32[i]);
+    internal->whiteLevel = wl.data.i32[0];
+    for(int i =0; i<9;i++) {
+        internal->calibrationTransform1[i] = float(ct1.data.r[i].numerator)/float(ct1.data.r[i].denominator);
+        internal->calibrationTransform2[i] = float(ct2.data.r[i].numerator)/float(ct2.data.r[i].denominator);
+        internal->colorSpaceTransform1[i] = float(cst1.data.r[i].numerator)/float(cst1.data.r[i].denominator);
+        internal->colorSpaceTransform2[i] = float(cst2.data.r[i].numerator)/float(cst2.data.r[i].denominator);
+        internal->forwardMatrix1[i] = float(fm1.data.r[i].numerator)/float(fm1.data.r[i].denominator);
+        internal->forwardMatrix2[i] = float(fm2.data.r[i].numerator)/float(fm2.data.r[i].denominator);
+    }
     LOGD("Internal parameters done");
 
 }
@@ -192,6 +211,7 @@ void CameraNDK::OpenCamera(ACameraDevice_request_template templateId,AIMAGE_FORM
     auto tmp = parameters;
 
     parameters = new CameraParameters();
+    processor  = new Processor();
     if(tmp != nullptr){
         parameters->aspect = tmp->aspect;
         delete tmp;

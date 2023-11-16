@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.6)
 
 project(NPhotonCamera)
 
+
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -40,7 +41,6 @@ add_library(${CMAKE_PROJECT_NAME} SHARED
         ${SRC_DIR}/UI/Gallery.cpp
         ${SRC_DIR}/UI/Demos.cpp
         ${SRC_DIR}/UI/image_loader.cpp
-        ${SRC_DIR}/Processing/ProcessorQueue.cpp
         ${SRC_DIR}/Processing/Processor.cpp
         ${ANDROID_NDK}/sources/android/native_app_glue/android_native_app_glue.c
         ${ANDROID_NDK}/sources/android/cpufeatures/cpu-features.c
@@ -126,6 +126,9 @@ add_subdirectory(deps/exiv2 EXCLUDE_FROM_ALL)
 target_compile_options(exiv2lib PRIVATE -Wno-deprecated-declarations -Wno-extra-semi -Wno-deprecated-copy)
 target_compile_options(exiv2lib_int PRIVATE -Wno-deprecated-declarations -Wno-extra-semi -Wno-deprecated-copy)
 
+add_subdirectory(deps/dng_writer EXCLUDE_FROM_ALL)
+include_directories(deps/dng_writer/dngwriter)
+
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE
         android
         EGL
@@ -139,6 +142,7 @@ target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE
         jxl-static
         jxl_threads-static
         exiv2lib
+        dngwriter
         )
 add_compile_definitions(ENABLE_DEMO_WINDOWS #comment this define to disable demo windows
         )
