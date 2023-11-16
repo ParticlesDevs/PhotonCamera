@@ -49,6 +49,6 @@ struct CameraParameters{
     int buffCnt = 0;
     int buffAvailable = 50;
     int requestedBuffers = 0;
-    int maxRequest = 50;
+    int maxRequest = 5;
 };
 #endif //PHOTONCAMERA_CAMERAPARAMETERS_H
