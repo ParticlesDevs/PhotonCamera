@@ -13,7 +13,7 @@ android {
         }
     }
     namespace 'com.particlesdevs.PhotonCamera'
-    compileSdk 32
+    compileSdk 34
     def versionPropsFile = file('version.properties')
     def versionBuild
     if (versionPropsFile.canRead()) {
@@ -99,5 +99,6 @@ android {
 }
 
 dependencies {
-    implementation "androidx.lifecycle:lifecycle-runtime-ktx:2.4.0-alpha03"
+    implementation "io.github.hexhacking:xdl:2.0.0"
+    implementation "androidx.lifecycle:lifecycle-runtime-ktx:2.7.0-rc01"
 }
