@@ -23,6 +23,8 @@ void Preview(UiManager* manager){
         return;
     }
     ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4{0,0,0,0.35f});
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{0,0,0,0.1f});
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{0,0,0,0.1f});
     auto cursor = ImGui::GetCursorPos();
     auto edisp = disp-ImGui::GetCursorScreenPos();
     //ImGui::SetCursorPos(cursor+ImVec2{0,manager->DPI*0.25f});
@@ -50,7 +52,7 @@ void Preview(UiManager* manager){
     if (ImGui::BeginChild("##1")){
         auto col = ImVec4{0,1,0,1};
         ImGui::TextColored(col,"%.2f FPS", ImGui::GetIO().Framerate);
-        ImGui::TextColored(col,"Resolutions");
+        ImGui::TextColored(col,"Resolutions for ID: %s",manager->parameters->id);
         ImGui::TextColored(col,"%d x %d Preview",manager->parameters->previewSize.first,manager->parameters->previewSize.second);
         ImGui::TextColored(col,"%d x %d Target",manager->parameters->rawSize.first,manager->parameters->rawSize.second);
     }
@@ -99,6 +101,8 @@ void Preview(UiManager* manager){
 
 
     ImGui::PopStyleVar();
+    ImGui::PopStyleColor();
+    ImGui::PopStyleColor();
     ImGui::PopStyleColor();
     ImGui::End();
 }
