@@ -5,6 +5,9 @@
 #include <Processor.h>
 #include "DngWriter.h"
 #include "logs.h"
+
+#define LOCAL_STORAGE "/data/data/com.particlesdevs.PhotonCamera/"
+
 Processor::Processor() {
     //std::thread thread(Processor::Handler, this);
 }
@@ -32,7 +35,7 @@ void Processor::Process(std::vector<AImage*> buffers) {
             break;
         }
         case 1: {
-            dngprofile->bayerformat = "grgb";
+            dngprofile->bayerformat = "grbg";
             break;
         }
         case 2: {
