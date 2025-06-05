@@ -24,16 +24,34 @@ static void capture_session_on_active(void *context, ACameraCaptureSession *sess
 static void capture_session_on_closed(void *context, ACameraCaptureSession *session) {
     LOGI("Session is closed. %p\n", session);
 }
+
+void CameraNDK::FillResult(ACameraMetadata* result){
+    LOGD("Fill result");
+    auto sensor = parameters->currentSensor;
+    processor->currentSensor = parameters->currentSensor;
+    auto internal = &sensor->processing;
+    auto whitePoint = getEntry(result, ACAMERA_SENSOR_NEUTRAL_COLOR_POINT);
+    auto ISO = getEntry(result, ACAMERA_SENSOR_SENSITIVITY);
+    LOGD("Fill hotpixels");
+    //auto hotpix = getEntry(result, ACAMERA_STATISTICS_HOT_PIXEL_MAP);
+    for(int i =0; i<3;i++)
+        internal->whitePoint[i] = float(whitePoint.data.r[i].numerator)/float(whitePoint.data.r[i].denominator);
+    internal->sensorSensitivity = float(ISO.data.i32[0]);
+    LOGD("Binning used %d", getEntry(result, ACAMERA_SENSOR_RAW_BINNING_FACTOR_USED).data.u8[0]);
+    //for(int i =0; i<hotpix.count; i++){
+    //    LOGD("Hot pixel %d %d",hotpix.data.i32[i*2],hotpix.data.i32[i*2+1]);
+    //}
+}
 static void captureCompleted(void* context, ACameraCaptureSession* session,
                              ACaptureRequest* request, const ACameraMetadata* result){
     if(cam->parameters->takePicture){
         if(cam->parameters->requestedBuffers == 0){
-        LOGI("Capture Started %p\n", session);
-        cam->parameters->takePicture = false;
-        cam->parameters->requestedBuffers = cam->parameters->maxRequest;
-        cam->parameters->buffCnt = 0;
-        ACaptureRequest_addTarget(cam->captureRequest, cam->OutputTarget);
-        ACameraCaptureSession_setRepeatingRequest(cam->captureSession, &cam->captureSessionCaptureCallbacks, 1,
+            LOGI("Capture Started %p\n", session);
+            cam->parameters->takePicture = false;
+            cam->parameters->requestedBuffers = cam->parameters->maxRequest;
+            cam->parameters->buffCnt = 0;
+            ACaptureRequest_addTarget(cam->captureRequest, cam->OutputTarget);
+            ACameraCaptureSession_setRepeatingRequest(cam->captureSession, &cam->captureSessionCaptureCallbacks, 1,
                                                   &cam->captureRequest, nullptr);
         } else {
             cam->parameters->takePicture = false;
@@ -41,6 +59,9 @@ static void captureCompleted(void* context, ACameraCaptureSession* session,
     }
 
     if(cam->parameters->requestedBuffers != 0) {
+        if(cam->parameters->buffCnt == 0){
+            cam->FillResult(const_cast<ACameraMetadata *>(result));
+        }
         if(cam->parameters->buffCnt >= cam->parameters->requestedBuffers){
             cam->processor->post(buffers);
             LOGI("Capture Burst %d Completed\n", cam->parameters->requestedBuffers);
@@ -55,6 +76,10 @@ static void captureCompleted(void* context, ACameraCaptureSession* session,
     if(cam->parameters->flipCamera){
         cam->parameters->flipCamera = false;
         cam->parameters->selectedID = (cam->parameters->selectedID+1)%cam->parameters->cameraIDs.size();
+        cam->Restart();
+    }
+    if(cam->parameters->restart){
+        cam->parameters->restart = false;
         cam->Restart();
     }
 
@@ -154,14 +179,16 @@ void CameraNDK::Restart(){
     StartPreview();
 }
 //Get current sensor entry
-ACameraMetadata_const_entry CameraNDK::getEntry(uint32_t tag){
+ACameraMetadata_const_entry CameraNDK::getEntry(ACameraMetadata* cameraCharacteristics,uint32_t tag){
     ACameraMetadata_const_entry entry;
     auto ret = ACameraMetadata_getConstEntry(cameraCharacteristics,tag,&entry);
     if(ret != ACAMERA_OK) {
-        LOGE("Error: Missing from characteristics!");
+        LOGE("Error: Missing from characteristics! Camera ID: %s Tag shift sensor: %d scaler: %d lens: %d stats: %d stats info: %d",parameters->id,
+             tag-ACAMERA_SENSOR_INFO_START, tag-ACAMERA_SCALER_START, tag-ACAMERA_LENS_START, tag-ACAMERA_STATISTICS_START, tag-ACAMERA_STATISTICS_INFO_START);
     }
     return entry;
 }
+
 void CameraNDK::FillCharacteristics(){
     auto sensor = parameters->currentSensor;
     processor->currentSensor = parameters->currentSensor;
@@ -170,19 +197,20 @@ void CameraNDK::FillCharacteristics(){
     internal->rawSize[0] = sensor->rawSizes[parameters->currentSensor->selectedRaw].first;
     internal->rawSize[1] = sensor->rawSizes[parameters->currentSensor->selectedRaw].second;
     LOGD("Filling internal parameters");
-    auto sensorSize = getEntry(ACAMERA_SENSOR_INFO_PHYSICAL_SIZE);
-    auto CFA = getEntry(ACAMERA_SENSOR_INFO_COLOR_FILTER_ARRANGEMENT);
-    auto analogISO = getEntry(ACAMERA_SENSOR_MAX_ANALOG_SENSITIVITY);
-    auto focal = getEntry(ACAMERA_LENS_INFO_AVAILABLE_FOCAL_LENGTHS);
-    auto aperture = getEntry(ACAMERA_LENS_APERTURE);
-    auto bl = getEntry(ACAMERA_SENSOR_BLACK_LEVEL_PATTERN);
-    auto wl = getEntry(ACAMERA_SENSOR_INFO_WHITE_LEVEL);
-    auto ct1 = getEntry(ACAMERA_SENSOR_CALIBRATION_TRANSFORM1);
-    auto ct2 = getEntry(ACAMERA_SENSOR_CALIBRATION_TRANSFORM2);
-    auto cst1 = getEntry(ACAMERA_SENSOR_COLOR_TRANSFORM1);
-    auto cst2 = getEntry(ACAMERA_SENSOR_COLOR_TRANSFORM2);
-    auto fm1 = getEntry(ACAMERA_SENSOR_FORWARD_MATRIX1);
-    auto fm2 = getEntry(ACAMERA_SENSOR_FORWARD_MATRIX2);
+    auto sensorSize = getEntry(cameraCharacteristics, ACAMERA_SENSOR_INFO_PHYSICAL_SIZE);
+    auto CFA = getEntry(cameraCharacteristics, ACAMERA_SENSOR_INFO_COLOR_FILTER_ARRANGEMENT);
+    auto analogISO = getEntry(cameraCharacteristics, ACAMERA_SENSOR_MAX_ANALOG_SENSITIVITY);
+    auto focal = getEntry(cameraCharacteristics, ACAMERA_LENS_INFO_AVAILABLE_FOCAL_LENGTHS);
+    auto aperture = getEntry(cameraCharacteristics, ACAMERA_LENS_INFO_AVAILABLE_APERTURES);
+    auto bl = getEntry(cameraCharacteristics, ACAMERA_SENSOR_BLACK_LEVEL_PATTERN);
+    auto wl = getEntry(cameraCharacteristics, ACAMERA_SENSOR_INFO_WHITE_LEVEL);
+    auto ct1 = getEntry(cameraCharacteristics, ACAMERA_SENSOR_CALIBRATION_TRANSFORM1);
+    auto ct2 = getEntry(cameraCharacteristics, ACAMERA_SENSOR_CALIBRATION_TRANSFORM2);
+    auto cst1 = getEntry(cameraCharacteristics, ACAMERA_SENSOR_COLOR_TRANSFORM1);
+    auto cst2 = getEntry(cameraCharacteristics, ACAMERA_SENSOR_COLOR_TRANSFORM2);
+    auto fm1 = getEntry(cameraCharacteristics, ACAMERA_SENSOR_FORWARD_MATRIX1);
+    auto fm2 = getEntry(cameraCharacteristics, ACAMERA_SENSOR_FORWARD_MATRIX2);
+
 
     internal->sensorSize[0] = sensorSize.data.f[0];
     internal->sensorSize[1] = sensorSize.data.f[1];
@@ -233,7 +261,7 @@ void CameraNDK::OpenCamera(ACameraDevice_request_template templateId,AIMAGE_FORM
         return;
     }
     parameters->sensors.clear();
-    parameters->sensors = std::vector<SensorParameters>(cameraIdList->numCameras);
+    parameters->sensors = std::vector<SensorParameters>(cameraIdList->numCameras+8);
     for(int i =0; i<cameraIdList->numCameras;i++){
         auto params = SensorParameters();
         parameters->cameraIDs.emplace_back(cameraIdList->cameraIds[i]);
@@ -241,6 +269,7 @@ void CameraNDK::OpenCamera(ACameraDevice_request_template templateId,AIMAGE_FORM
         LOGD("parameters->sensors[i].id %p",parameters->sensors[i].id);
     }
     parameters->selectedID = 0;
+    //parameters->cameraIDs[0] = "8";
     parameters->id = parameters->cameraIDs[parameters->selectedID].c_str();
     parameters->currentSensor = &parameters->sensors[parameters->selectedID];
     LOGD("parameters->currentSensor %p",parameters->currentSensor->id);
@@ -367,6 +396,12 @@ void CameraNDK::StartPreview() {
     uint8_t mode = ACAMERA_CONTROL_VIDEO_STABILIZATION_MODE_ON;
     ACaptureRequest_setEntry_u8(captureRequest, ACAMERA_CONTROL_VIDEO_STABILIZATION_MODE, 1,
                                 &mode);
+    mode = ACAMERA_STATISTICS_HOT_PIXEL_MAP_MODE_ON;
+    ACaptureRequest_setEntry_u8(captureRequest, ACAMERA_STATISTICS_HOT_PIXEL_MAP_MODE, 1,
+                                &mode);
+    //mode = ACAMERA_SENSOR_PIXEL_MODE_MAXIMUM_RESOLUTION;
+    //ACaptureRequest_setEntry_u8(captureRequest, ACAMERA_SENSOR_PIXEL_MODE, 1,
+    //                            &mode);
 
     ACameraDevice_createCaptureSession(cameraDevice, captureSessionOutputContainer,
                                        &captureSessionStateCallbacks, &captureSession);
@@ -384,7 +419,7 @@ void CameraNDK::StartPreview() {
 void CameraNDK::MainSize(AIMAGE_FORMATS format, float currentAspect) {
     parameters->currentSensor->rawSizes.clear();
     parameters->aspect = currentAspect;
-    ACameraMetadata_const_entry entry = getEntry(ACAMERA_SCALER_AVAILABLE_STREAM_CONFIGURATIONS);
+    ACameraMetadata_const_entry entry = getEntry(cameraCharacteristics, ACAMERA_SCALER_AVAILABLE_STREAM_CONFIGURATIONS);
 
     int height = 0;
     int width = 0;
@@ -431,7 +466,7 @@ void CameraNDK::MainSize(AIMAGE_FORMATS format, float currentAspect) {
 }
 void CameraNDK::PreviewSize() {
     parameters->currentSensor->previewSizes.clear();
-    ACameraMetadata_const_entry entry = getEntry(ACAMERA_SCALER_AVAILABLE_STREAM_CONFIGURATIONS);
+    ACameraMetadata_const_entry entry = getEntry(cameraCharacteristics, ACAMERA_SCALER_AVAILABLE_STREAM_CONFIGURATIONS);
     float k = parameters->aspect;
     int height = 0;
     int width = 0;

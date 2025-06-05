@@ -45,6 +45,7 @@ struct CameraParameters{
     bool takePicture = false; // Button to take picture from camera
     bool resetResCamera = false;
     bool flipCamera = false;
+    bool restart = false;
     float aspect = 1.f;
     int buffCnt = 0;
     int buffAvailable = 50;

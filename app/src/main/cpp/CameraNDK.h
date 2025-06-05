@@ -54,7 +54,9 @@ public:
 
     void FillCharacteristics();
 
-    ACameraMetadata_const_entry getEntry(uint32_t tag);
+    ACameraMetadata_const_entry getEntry(ACameraMetadata *metadata,uint32_t tag);
+
+    void FillResult(ACameraMetadata *result);
 };
 
 
