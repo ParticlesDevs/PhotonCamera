@@ -20,11 +20,11 @@ add_library(${CMAKE_PROJECT_NAME} SHARED
         ${SRC_DIR}/Util/EglPlate.cpp
         ${SRC_DIR}/Util/FileManager.cpp
         ${SRC_DIR}/Util/Widgets.cpp
-        ${SRC_DIR}/Util/exiv_wrapper.cpp
-        ${SRC_DIR}/Util/export_avif.cpp
-        ${SRC_DIR}/Util/export_jxl.cpp
-        ${SRC_DIR}/Util/import_avif.cpp
-        ${SRC_DIR}/Util/import_jxl.cpp
+        #${SRC_DIR}/Util/exiv_wrapper.cpp
+        #${SRC_DIR}/Util/export_avif.cpp
+        #${SRC_DIR}/Util/export_jxl.cpp
+        #${SRC_DIR}/Util/import_avif.cpp
+        #${SRC_DIR}/Util/import_jxl.cpp
         ${SRC_DIR}/main.cpp
         ${SRC_DIR}/CameraNDK.cpp
         ${SRC_DIR}/deps/imgui/imgui.cpp
@@ -128,6 +128,7 @@ target_compile_options(exiv2lib_int PRIVATE -Wno-deprecated-declarations -Wno-ex
 
 add_subdirectory(deps/dng_writer EXCLUDE_FROM_ALL)
 include_directories(deps/dng_writer/dngwriter)
+#find_package(JPEG REQUIRED)
 
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE
         android
@@ -137,10 +138,10 @@ target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE
         mediandk
         log
         glm
-        avif
-        aom
-        jxl-static
-        jxl_threads-static
+        #avif
+        #aom
+        #jxl-static
+        #jxl_threads-static
         exiv2lib
         dngwriter
         )
