@@ -22,8 +22,11 @@ public:
     Processor();
     static void Handler(Processor* processor);
     void setProcessedCallback(void (*newCallBack)());
-    void Process(std::vector<AImage*> buffers);
-    void post(std::vector<AImage *> buffers);
+    void Process();
+    void post();
+    void clear();
+
+    void progress(AImage *image);
 };
 
 

@@ -18,7 +18,7 @@
 #include "Processor.h"
 
 #define MAXFRAMES 51
-static std::vector<AImage*> buffers;
+
 class CameraNDK {
 public:
     CameraParameters *parameters;

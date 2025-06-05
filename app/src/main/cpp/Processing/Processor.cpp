@@ -7,15 +7,15 @@
 #include "logs.h"
 
 #define LOCAL_STORAGE "/data/data/com.particlesdevs.PhotonCamera/"
-
+//static std::vector<AImage*> buffers;
 Processor::Processor() {
     //std::thread thread(Processor::Handler, this);
 }
 
 //Call Processor thread to process dng
-void Processor::Process(std::vector<AImage*> buffers) {
+void Processor::Process() {
     //Loading data
-    this->buffers = buffers;
+    //this->buffers = buffers;
     auto sensor = currentSensor;
     uint8_t* data;
     int dataLength;
@@ -101,13 +101,25 @@ int printf(const char* format, ...){
     return 0;
 }
 
-static void callProcess(Processor* processor, std::vector<AImage*> buffers){
-    processor->Process(std::move(buffers));
+static void callProcess(Processor* processor){
+    processor->Process();
 }
 
-void Processor::post(std::vector<AImage*> buffers) {
+void Processor::post() {
     //std::thread thread(callProcess, this, buffers);
-    callProcess(this,buffers);
+    callProcess(this);
     //std::string outputFilename = "/sdcard/DCIM/Camera/output.dng";
     //std::__fs::filesystem::path path =  "/sdcard/DCIM/Camera/output.dng";
+}
+
+void Processor::progress(AImage* image) {
+    buffers.push_back(image);
+}
+
+void Processor::clear(){
+    for(auto & buffer : buffers){
+        AImage_delete(buffer);
+    }
+    buffers.clear();
+    //lock.unlock();
 }

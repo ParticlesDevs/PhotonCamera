@@ -63,7 +63,7 @@ static void captureCompleted(void* context, ACameraCaptureSession* session,
             cam->FillResult(const_cast<ACameraMetadata *>(result));
         }
         if(cam->parameters->buffCnt >= cam->parameters->requestedBuffers){
-            cam->processor->post(buffers);
+            cam->processor->post();
             LOGI("Capture Burst %d Completed\n", cam->parameters->requestedBuffers);
             cam->parameters->requestedBuffers = 0;
             ACaptureRequest_removeTarget(cam->captureRequest, cam->OutputTarget);
@@ -94,7 +94,8 @@ static void onImageAvailable(void* context, AImageReader* reader){
     AImageReader_acquireNextImage(reader,&image);
 
     if(cam->parameters->buffCnt < cam->parameters->requestedBuffers) {
-        buffers[cam->parameters->buffCnt] = image;
+        cam->processor->progress(image);
+        //buffers[cam->parameters->buffCnt] = image;
         cam->parameters->buffCnt++;
         LOGI("CameraNDK read image %d\n",cam->parameters->buffCnt);
         //AImage_delete(image);
@@ -246,7 +247,6 @@ void CameraNDK::OpenCamera(ACameraDevice_request_template templateId,AIMAGE_FORM
     }
     ACameraIdList *cameraIdList = nullptr;
     LOGI("OpenCamera");
-    buffers = std::vector<AImage*>(MAXFRAMES);
     camera_status_t camera_status = ACAMERA_OK;
     ACameraManager *cameraManager = ACameraManager_create();
 
@@ -314,7 +314,7 @@ void CameraNDK::CloseCamera()
 {
     ACameraCaptureSession_close(cam->captureSession);
     camera_status_t camera_status = ACAMERA_OK;
-    buffers.clear();
+    cam->processor->clear();
 
     if (captureRequest != nullptr) {
         ACaptureRequest_free(captureRequest);
