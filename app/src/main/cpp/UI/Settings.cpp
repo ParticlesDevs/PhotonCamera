@@ -8,6 +8,23 @@
 #include "logs.h"
 #include <cstdlib>
 #include <string>
+bool SliderFloat(const char* label, float* v, float v_min, float v_max, const char* format, ImGuiSliderFlags flags = 0){
+    char buffer[64];
+    sprintf(buffer,"##%s", label);
+    bool ret = ImGui::SliderFloat(buffer,v,v_min,v_max,label,flags);
+    ImGui::SameLine();
+    ImGui::Text(format,*v);
+    return ret;
+}
+bool SliderInt(const char* label, int* v, int v_min, int v_max, const char* format, ImGuiSliderFlags flags = 0){
+    char buffer[64];
+    sprintf(buffer,"##%s", label);
+    bool ret = ImGui::SliderInt(buffer,v,v_min,v_max,label,flags);
+    ImGui::SameLine();
+    ImGui::Text(format,*v);
+    return ret;
+}
+char selectedID[64];
 void Settings(UiManager* manager){
     auto io = ImGui::GetIO();
     auto disp = io.DisplaySize;
@@ -20,10 +37,29 @@ void Settings(UiManager* manager){
         return;
     }
     ImGui::PushFont(io.Fonts->Fonts[3]);
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{0,0,0,0.1f});
     if (ImGui::Button(ICON_MD_ARROW_BACK_IOS_NEW)){
         manager->currentLayout = MAIN;
     }
     ImGui::PopFont();
+    ImGui::PopStyleColor();
+    BeginGroupPanel(TextFmt("Camera OVERRIDE"),ImVec2{-1,0});
+    {
+        ImGui::InputText("ID", selectedID, 64);
+        /*if(ImGui::Button("Set")){
+            manager->parameters->cameraIDs[manager->parameters->selectedID] = std::string(selectedID);
+            manager->parameters->restart = true;
+        }*/
+        if(ImGui::Button("Add")){
+            manager->parameters->cameraIDs.emplace_back(selectedID);
+            for(int i=0; i<manager->parameters->cameraIDs.size(); i++){
+                LOGD("ID: %s",manager->parameters->cameraIDs[i].c_str());
+            }
+            //manager->parameters->sensors.emplace_back(SensorParameters{});
+        }
+    }
+    EndGroupPanel();
+
     BeginGroupPanel(TextFmt("Camera: %s Settings ",manager->parameters->cameraIDs[manager->parameters->selectedID].c_str()),ImVec2{-1,0});
     {
         auto currentMain = manager->parameters->currentSensor->rawNames[manager->parameters->selectedRaw].c_str();
@@ -58,8 +94,11 @@ void Settings(UiManager* manager){
     EndGroupPanel();
 
     static bool show_demo_window = false;
-    ImGui::SliderInt("FrameCount",&manager->parameters->maxRequest,3,50);
-    ImGui::SliderFloat("SliderExample",&manager->sliderTest,0,1,"%.3f",ImGuiSliderFlags_AlwaysClamp);
+
+    //ImGui::SliderInt("##FrameCount",&manager->parameters->maxRequest,3,50, "FrameCount %d");
+    //ImGui::SliderFloat("##SliderExample",&manager->sliderTest,0,1,"SliderExample %.3f",ImGuiSliderFlags_AlwaysClamp);
+    SliderInt("FrameCount",&manager->parameters->maxRequest,3,50, "%d");
+    SliderFloat("SliderExample",&manager->sliderTest,0,1,"%.3f");
     ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our window open/close state
     static int diffNum = 0;
     ImGui::Text("UI Difficulty");
