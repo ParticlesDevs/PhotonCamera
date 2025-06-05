@@ -1,23 +1,24 @@
 package com.particlesdevs.PhotonCamera
 
 import android.app.NativeActivity
-import android.os.Bundle
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.SurfaceTexture
+import android.net.Uri
 import android.os.Build
+import android.os.Build.VERSION
+import android.os.Bundle
+import android.os.Environment
 import android.os.Handler
-import android.os.Looper
-import android.util.Log
-import android.util.LogPrinter
-import android.view.inputmethod.InputMethodManager
+import android.provider.Settings
 import android.view.KeyEvent
 import android.view.Surface
+import android.view.inputmethod.InputMethodManager
 import android.widget.Toast
-import kotlinx.coroutines.sync.Mutex
+import androidx.annotation.RequiresApi
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
-import java.util.concurrent.LinkedBlockingQueue
 import kotlin.system.exitProcess
 
 class MainActivity : NativeActivity() {
@@ -37,8 +38,30 @@ class MainActivity : NativeActivity() {
         while(checkSelfPermission(android.Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED){
             requestPermissions(arrayOf(android.Manifest.permission.CAMERA), 1)
         }
+        /*while(checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED){
+            requestPermissions(arrayOf(android.Manifest.permission.WRITE_EXTERNAL_STORAGE), 1)
+        }*/
+
+        if (VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            val uri = Uri.parse("package:${BuildConfig.APPLICATION_ID}")
+            if(!hasAllFilesPermission())
+                startActivity(
+                Intent(
+                    Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
+                    uri
+                )
+                )
+        } else {
+            //below android 11
+            while(checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED){
+                requestPermissions(arrayOf(android.Manifest.permission.WRITE_EXTERNAL_STORAGE), 2)
+            }
+        }
         super.onCreate(savedInstanceState)
     }
+    @RequiresApi(Build.VERSION_CODES.R)
+    private fun hasAllFilesPermission() = Environment.isExternalStorageManager()
+
     override fun onRequestPermissionsResult(
         requestCode: Int,
         permissions: Array<out String>,
