@@ -160,7 +160,7 @@ void initUICamera(struct android_app* app)
     style.TabRounding = DPI/15.f;
     style.FramePadding = ImVec2{DPI/20.f,DPI/20.f};
     style.WindowTitleAlign = ImVec2{0.5f,0.5f};
-    style.Colors[ImGuiCol_Button] = ImVec4{0,0,0,0.1};
+    //style.Colors[ImGuiCol_Button] = ImVec4{0,0,0,0.1};
     style.Colors[ImGuiCol_ButtonHovered] = style.Colors[ImGuiCol_Button];
     style.Colors[ImGuiCol_HeaderHovered] = style.Colors[ImGuiCol_Header];
     style.Colors[ImGuiCol_TabHovered] = style.Colors[ImGuiCol_Tab];
@@ -209,6 +209,7 @@ void tick()
         jmethodID method_id = env2->GetMethodID(native_activity_clazz, "updateTexImage", "()V");
         env2->CallVoidMethod(g_App->activity->clazz, method_id);
         uiManager.handler.updatePreview = false;
+        //ASurfaceTexture_updateTexImage(camera.parameters->cameraPreviewID);
     }
     if(camera.parameters->resetResCamera){
         camera.parameters->resetResCamera = false;
@@ -321,7 +322,7 @@ void android_main(struct android_app* app)
 // Therefore, we call ShowSoftKeyboardInput() of the main activity implemented in MainActivity.kt via JNI.
 static int ShowSoftKeyboardInput()
 {
-    JavaVM* java_vm = g_App->activity->vm;
+    /*JavaVM* java_vm = g_App->activity->vm;
     JNIEnv* java_env = NULL;
 
     jint jni_return = java_vm->GetEnv((void**)&java_env, JNI_VERSION_1_6);
@@ -330,22 +331,22 @@ static int ShowSoftKeyboardInput()
 
     jni_return = java_vm->AttachCurrentThread(&java_env, NULL);
     if (jni_return != JNI_OK)
-        return -2;
+        return -2;*/
 
-    jclass native_activity_clazz = java_env->GetObjectClass(g_App->activity->clazz);
+    jclass native_activity_clazz = env2->GetObjectClass(g_App->activity->clazz);
     if (native_activity_clazz == NULL)
         return -3;
 
-    jmethodID method_id = java_env->GetMethodID(native_activity_clazz, "showSoftInput", "()V");
+    jmethodID method_id = env2->GetMethodID(native_activity_clazz, "showSoftInput", "()V");
     if (method_id == NULL)
         return -4;
 
-    java_env->CallVoidMethod(g_App->activity->clazz, method_id);
+    env2->CallVoidMethod(g_App->activity->clazz, method_id);
 
-    jni_return = java_vm->DetachCurrentThread();
-    if (jni_return != JNI_OK)
-        return -5;
-
+    //jni_return = java_vm->DetachCurrentThread();
+    //if (jni_return != JNI_OK)
+    //    return -5;
+    LOGD("ShowSoftKeyboardInput OK");
     return 0;
 }
 
@@ -356,10 +357,12 @@ static int PollUnicodeChars()
 {
     ImGuiIO& io = ImGui::GetIO();
     if(unicodeBuffer[1] != 0){
+        LOGD("PollUnicodeChars");
         for(int i =0; i<unicodeBuffer[0];i++){
             io.AddInputCharacter(unicodeBuffer[i+1]);
         }
         unicodeBuffer[0] = 0;
+        unicodeBuffer[1] = 0;
     }
     return 0;}
 
